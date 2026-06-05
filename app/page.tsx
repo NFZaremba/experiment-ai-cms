@@ -30,9 +30,6 @@ const FeedbackSection = dynamic(() =>
 
 const { hero } = getLandingContent();
 
-// Standalone marketing build: no auth. The fixed CTA links out to the public site.
-const EXPLORE_URL = "https://www.wellcertified.com";
-
 /** Syncs Lenis scroll events with GSAP ScrollTrigger. */
 function ScrollSync() {
   useLenis(() => ScrollTrigger.update());
@@ -227,9 +224,15 @@ export default function Home() {
                 size="xlarge"
                 className="text-white min-w-80"
                 style={{ background: "var(--gradient-cta)" }}
-                onClick={() => window.open(EXPLORE_URL, "_blank", "noopener")}
+                data-content-path="hero.cta"
+                data-field-type="link"
+                data-href={hero.cta.href}
+                data-newtab={String(hero.cta.newTab)}
+                onClick={() =>
+                  window.open(hero.cta.href, hero.cta.newTab ? "_blank" : "_self", "noopener")
+                }
               >
-                {hero.ctaAuthed}
+                {hero.cta.label}
               </Button>
               {hero.commentPeriod.date && (
                 <Text as="p" variant="body-small" className="text-gray-600 italic">

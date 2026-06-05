@@ -7,16 +7,26 @@ import {
   isStudioMessage,
   type SelectFieldMessage,
   type BridgeReadyMessage,
+  type BridgeDeselectMessage,
 } from "@/lib/studio/messages";
+import {
+  isImageValue,
+  isLinkValue,
+  type FieldType,
+  type FieldValue,
+} from "@/lib/studio/field-types";
 
 /**
  * Mounted inside the previewed landing page when it loads with `?edit=1`.
  * Bridges DOM ↔ Studio shell:
  *  - re-applies persisted draft edits to the DOM on load
  *  - outlines `[data-content-path]` elements on hover
- *  - on click, posts the selected field (path + rect + value) to the shell
- *  - on an `apply` message from the shell, updates the DOM live + records the
- *    edit in the draft store (which persists to localStorage)
+ *  - on click, posts the selected field (path + type + value + rect) to the shell
+ *  - on an `apply` message, updates the DOM live + records the edit in the draft
+ *
+ * Each element declares its kind via `data-field-type` (default "text"). The
+ * DOM is the source of truth for current values (drafts are applied to it on
+ * load), so reading/writing is uniform across text, link, richtext, image.
  *
  * Renders nothing. No-ops unless `active`.
  */
@@ -32,19 +42,63 @@ const EDIT_STYLES = `
   }
 `;
 
-function postToShell(message: SelectFieldMessage | BridgeReadyMessage) {
-  // window.parent is the Studio shell when embedded; falls back to self
-  // (harmless no-op) when the page is opened directly.
+function postToShell(
+  message: SelectFieldMessage | BridgeReadyMessage | BridgeDeselectMessage
+) {
   window.parent.postMessage(message, window.location.origin);
 }
 
-function applyOverride(path: string, value: string) {
-  const nodes = document.querySelectorAll<HTMLElement>(
-    `[data-content-path="${CSS.escape(path)}"]`
-  );
-  nodes.forEach((node) => {
-    node.textContent = value;
-  });
+function fieldTypeOf(el: HTMLElement): FieldType {
+  return (el.dataset.fieldType as FieldType) || "text";
+}
+
+function readValue(el: HTMLElement): FieldValue {
+  switch (fieldTypeOf(el)) {
+    case "link":
+      return {
+        label: (el.textContent ?? "").trim(),
+        href: el.dataset.href ?? "",
+        newTab: el.dataset.newtab === "true",
+      };
+    case "image":
+      return {
+        src: el.getAttribute("src") ?? el.dataset.src ?? "",
+        alt: el.getAttribute("alt") ?? "",
+      };
+    case "richtext":
+      return el.innerHTML;
+    default:
+      return (el.textContent ?? "").trim();
+  }
+}
+
+function writeValue(el: HTMLElement, value: FieldValue) {
+  switch (fieldTypeOf(el)) {
+    case "link":
+      if (isLinkValue(value)) {
+        el.textContent = value.label;
+        el.dataset.href = value.href;
+        el.dataset.newtab = String(value.newTab);
+      }
+      break;
+    case "image":
+      if (isImageValue(value) && el instanceof HTMLImageElement) {
+        el.src = value.src;
+        el.alt = value.alt;
+      }
+      break;
+    case "richtext":
+      if (typeof value === "string") el.innerHTML = value;
+      break;
+    default:
+      if (typeof value === "string") el.textContent = value;
+  }
+}
+
+function applyOverride(path: string, value: FieldValue) {
+  document
+    .querySelectorAll<HTMLElement>(`[data-content-path="${CSS.escape(path)}"]`)
+    .forEach((node) => writeValue(node, value));
 }
 
 export function EditModeBridge({ active }: { active: boolean }) {
@@ -53,7 +107,6 @@ export function EditModeBridge({ active }: { active: boolean }) {
   useEffect(() => {
     if (!active) return;
 
-    // 1) Inject edit-mode styles.
     let style = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
     if (!style) {
       style = document.createElement("style");
@@ -62,57 +115,50 @@ export function EditModeBridge({ active }: { active: boolean }) {
       document.head.appendChild(style);
     }
 
-    // 2) Re-apply any persisted draft edits to the DOM.
+    // Re-apply persisted draft edits to the DOM.
     const { edits } = useDraftStore.getState();
     for (const [path, value] of Object.entries(edits)) applyOverride(path, value);
 
-    // 3) Hover outline (event delegation).
+    // Hover outline.
     let hovered: HTMLElement | null = null;
     const onPointerOver = (e: PointerEvent) => {
-      const target = (e.target as HTMLElement | null)?.closest<HTMLElement>(
-        "[data-content-path]"
-      );
+      const target = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-content-path]");
       if (target === hovered) return;
       hovered?.classList.remove("studio-hover");
-      hovered = target;
+      hovered = target ?? null;
       hovered?.classList.add("studio-hover");
     };
     const onPointerOut = (e: PointerEvent) => {
-      const related = (e.relatedTarget as HTMLElement | null)?.closest(
-        "[data-content-path]"
-      );
+      const related = (e.relatedTarget as HTMLElement | null)?.closest("[data-content-path]");
       if (!related && hovered) {
         hovered.classList.remove("studio-hover");
         hovered = null;
       }
     };
 
-    // 4) Click → select. Capture phase + preventDefault stops CTA navigation.
+    // Click → select. Capture phase + preventDefault stops CTA navigation.
     const onClick = (e: MouseEvent) => {
-      const el = (e.target as HTMLElement | null)?.closest<HTMLElement>(
-        "[data-content-path]"
-      );
-      if (!el) return;
+      const el = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-content-path]");
+      if (!el) {
+        // Clicked a non-editable area → ask the shell to close the panel.
+        postToShell({ source: "studio-bridge", type: "deselect" });
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       const path = el.getAttribute("data-content-path")!;
       const rect = el.getBoundingClientRect();
-      const currentValue = (
-        useDraftStore.getState().edits[path] ??
-        el.textContent ??
-        ""
-      ).trim();
       postToShell({
         source: "studio-bridge",
         type: "select",
         path,
         rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
-        currentValue,
-        fieldType: "text",
+        currentValue: readValue(el),
+        fieldType: fieldTypeOf(el),
       });
     };
 
-    // 5) Apply edits coming back from the shell.
+    // Apply edits coming back from the shell.
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
       if (!isStudioMessage(e.data) || !isApplyMessage(e.data)) return;

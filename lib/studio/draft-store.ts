@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { FieldValue } from "./field-types";
 
 /**
  * Draft edits for the Content Studio.
@@ -13,11 +14,11 @@ import { persist } from "zustand/middleware";
  * This is UI/draft state only — never server state. It is cleared on publish.
  */
 
-export type DraftEdits = Record<string, string>;
+export type DraftEdits = Record<string, FieldValue>;
 
 type DraftState = {
   edits: DraftEdits;
-  setEdit: (path: string, value: string) => void;
+  setEdit: (path: string, value: FieldValue) => void;
   clear: () => void;
 };
 

@@ -19,6 +19,13 @@ const segment = z.object({
 /** A rich-text paragraph: an ordered list of inline segments. */
 const paragraph = z.array(segment);
 
+/** An editable call-to-action link: label + target + new-tab. */
+const link = z.object({
+  label: z.string(),
+  href: z.string(),
+  newTab: z.boolean(),
+});
+
 const milestone = z.object({
   phase: z.string(),
   status: z.enum(["open", "coming-soon"]),
@@ -26,11 +33,7 @@ const milestone = z.object({
   statusText: z.string(),
   title: z.string(),
   description: z.string(),
-  cta: z.string(),
-  ctaHref: z.string(),
-  // Phase-1 milestone carries an authenticated-CTA override; others omit it.
-  ctaAuthed: z.string().optional(),
-  ctaAuthedHref: z.string().optional(),
+  link,
 });
 
 export const landingSchema = z.object({
@@ -38,8 +41,7 @@ export const landingSchema = z.object({
     eyebrow: z.string(),
     title: z.string(),
     body: z.string(),
-    ctaAuthed: z.string(),
-    ctaAnon: z.string(),
+    cta: link,
     commentPeriod: z.object({
       label: z.string(),
       date: z.string(),

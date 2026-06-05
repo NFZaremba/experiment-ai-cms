@@ -8,10 +8,6 @@ import { getLandingContent } from "@/lib/content";
 
 const { hero } = getLandingContent();
 
-// Standalone marketing build: no auth. The CTA links out to the public site
-// instead of opening a sign-in modal / routing to the gated explore section.
-const EXPLORE_URL = "https://www.wellcertified.com";
-
 function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -98,10 +94,15 @@ function HeroSection() {
             variant="secondary-light"
             size="xlarge"
             className="shadow-2xl border-none min-w-80"
-            data-content-path="hero.ctaAuthed"
-            onClick={() => window.open(EXPLORE_URL, "_blank", "noopener")}
+            data-content-path="hero.cta"
+            data-field-type="link"
+            data-href={hero.cta.href}
+            data-newtab={String(hero.cta.newTab)}
+            onClick={() =>
+              window.open(hero.cta.href, hero.cta.newTab ? "_blank" : "_self", "noopener")
+            }
           >
-            {hero.ctaAuthed}
+            {hero.cta.label}
           </Button>
           {hero.commentPeriod.date && (
             <Text as="p" variant="body-small" className="text-gray-300 italic">

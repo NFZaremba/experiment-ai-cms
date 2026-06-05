@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FloatingChatPanel, type Selection } from "@/components/studio/FloatingChatPanel";
 import { useDraftStore } from "@/lib/studio/draft-store";
 import {
+  isDeselectMessage,
   isSelectMessage,
   isStudioMessage,
   type ApplyEditMessage,
 } from "@/lib/studio/messages";
+import type { FieldType, FieldValue } from "@/lib/studio/field-types";
 
 const PREVIEW_SRC = "/?edit=1";
 
@@ -38,11 +40,16 @@ export default function StudioPage() {
         setReady(true);
         return;
       }
+      if (isDeselectMessage(e.data)) {
+        setSelection(null);
+        return;
+      }
       if (isSelectMessage(e.data)) {
         setIframeRect(iframeRef.current?.getBoundingClientRect() ?? null);
         setSelection({
           path: e.data.path,
           rect: e.data.rect,
+          fieldType: e.data.fieldType,
           currentValue: e.data.currentValue,
         });
       }
@@ -51,13 +58,27 @@ export default function StudioPage() {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
+  // Close the panel when clicking outside it within the shell chrome. (Clicks
+  // inside the iframe don't reach this document — those are handled by the
+  // bridge's "deselect" message.)
+  useEffect(() => {
+    if (!selection) return;
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest("[data-studio-panel]")) setSelection(null);
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [selection]);
+
   const applyEdit = useCallback(
-    (path: string, newValue: string) => {
+    (path: string, newValue: FieldValue, fieldType: FieldType) => {
       const message: ApplyEditMessage = {
         source: "studio-shell",
         type: "apply",
         path,
         newValue,
+        fieldType,
       };
       iframeRef.current?.contentWindow?.postMessage(message, window.location.origin);
       // The shell is the source of truth for drafts (it publishes), so record

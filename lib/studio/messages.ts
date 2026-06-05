@@ -7,6 +7,8 @@
  * a window never reacts to its own echoes or to unrelated postMessage traffic.
  */
 
+import type { FieldType, FieldValue } from "./field-types";
+
 export type FieldRect = {
   top: number;
   left: number;
@@ -20,8 +22,8 @@ export type SelectFieldMessage = {
   type: "select";
   path: string;
   rect: FieldRect;
-  currentValue: string;
-  fieldType: "text";
+  currentValue: FieldValue;
+  fieldType: FieldType;
 };
 
 /** iframe → shell: the bridge has mounted and is listening. */
@@ -30,15 +32,26 @@ export type BridgeReadyMessage = {
   type: "ready";
 };
 
+/** iframe → shell: a click landed on a non-editable area (close the panel). */
+export type BridgeDeselectMessage = {
+  source: "studio-bridge";
+  type: "deselect";
+};
+
 /** shell → iframe: apply a new value to a field (live preview). */
 export type ApplyEditMessage = {
   source: "studio-shell";
   type: "apply";
   path: string;
-  newValue: string;
+  newValue: FieldValue;
+  fieldType: FieldType;
 };
 
-export type StudioMessage = SelectFieldMessage | BridgeReadyMessage | ApplyEditMessage;
+export type StudioMessage =
+  | SelectFieldMessage
+  | BridgeReadyMessage
+  | BridgeDeselectMessage
+  | ApplyEditMessage;
 
 export function isStudioMessage(data: unknown): data is StudioMessage {
   if (typeof data !== "object" || data === null) return false;
@@ -52,6 +65,10 @@ export function isSelectMessage(m: StudioMessage): m is SelectFieldMessage {
 
 export function isReadyMessage(m: StudioMessage): m is BridgeReadyMessage {
   return m.source === "studio-bridge" && m.type === "ready";
+}
+
+export function isDeselectMessage(m: StudioMessage): m is BridgeDeselectMessage {
+  return m.source === "studio-bridge" && m.type === "deselect";
 }
 
 export function isApplyMessage(m: StudioMessage): m is ApplyEditMessage {

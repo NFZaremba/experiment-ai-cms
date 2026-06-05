@@ -16,8 +16,7 @@ interface Milestone {
   statusText: string;
   title: string;
   description: string;
-  cta: string | null;
-  ctaHref: string;
+  link: { label: string; href: string; newTab: boolean };
 }
 
 const MILESTONES: Milestone[] = roadmap.milestones.map((m) => ({
@@ -27,8 +26,7 @@ const MILESTONES: Milestone[] = roadmap.milestones.map((m) => ({
   statusText: m.statusText,
   title: m.title,
   description: m.description,
-  cta: m.cta,
-  ctaHref: m.ctaHref,
+  link: m.link,
 }));
 
 function MilestoneCard({
@@ -44,6 +42,7 @@ function MilestoneCard({
 }) {
   const isOpen = milestone.status === "open";
   const isLightCta = milestone.ctaVariant === "light";
+  const { link } = milestone;
 
   return (
     <Card
@@ -82,8 +81,12 @@ function MilestoneCard({
           {milestone.description}
         </Text>
 
-        {milestone.cta && (
-          <Link href={milestone.ctaHref} target="_blank" rel="noopener noreferrer">
+        {link.label && (
+          <Link
+            href={link.href}
+            target={link.newTab ? "_blank" : undefined}
+            rel="noopener noreferrer"
+          >
             <Button
               variant={"clear"}
               size="large"
@@ -91,9 +94,12 @@ function MilestoneCard({
                 "transition-transform duration-200 ease-in-out origin-center hover:scale-[1.02]",
                 !isLightCta ? "text-white bg-white/8" : "text-cyan-800 bg-white"
               )}
-              data-content-path={path ? `${path}.cta` : undefined}
+              data-content-path={path ? `${path}.link` : undefined}
+              data-field-type="link"
+              data-href={link.href}
+              data-newtab={String(link.newTab)}
             >
-              {milestone.cta}
+              {link.label}
             </Button>
           </Link>
         )}
