@@ -57,3 +57,20 @@ export function isEditableTextPath(content: LandingContent, path: string): boole
 export function getFieldType(_path: string): FieldType {
   return "text";
 }
+
+/**
+ * Content paths rendered as HTML (via dangerouslySetInnerHTML). This is the
+ * SERVER-AUTHORITATIVE list the publish route uses to decide which values to
+ * HTML-sanitize before committing — it must stay in sync with the components
+ * that render rich text. (Keep it here, next to the render decision, not on the
+ * client, so it can't be bypassed.)
+ */
+const RICHTEXT_PATTERNS: RegExp[] = [
+  /^hero\.body$/,
+  /^features\.items\.\d+\.description$/,
+  /^roadmap\.milestones\.\d+\.description$/,
+];
+
+export function isRichtextPath(path: string): boolean {
+  return RICHTEXT_PATTERNS.some((re) => re.test(path));
+}

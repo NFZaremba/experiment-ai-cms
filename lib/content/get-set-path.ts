@@ -9,6 +9,9 @@
 
 type AnyRecord = Record<string, unknown>;
 
+/** Path segments that could pollute Object.prototype — never allowed. */
+const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 /** Read the value at `path`, or `undefined` if any segment is missing. */
 export function getByPath(obj: unknown, path: string): unknown {
   return path.split(".").reduce<unknown>((acc, key) => {
@@ -24,6 +27,9 @@ export function getByPath(obj: unknown, path: string): unknown {
  */
 export function setByPath<T>(obj: T, path: string, value: unknown): T {
   const keys = path.split(".");
+  if (keys.some((k) => FORBIDDEN_KEYS.has(k))) {
+    throw new Error(`Refusing to write unsafe path: ${path}`);
+  }
 
   function helper(node: unknown, idx: number): unknown {
     const key = keys[idx];

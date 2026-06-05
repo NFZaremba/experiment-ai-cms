@@ -1,6 +1,8 @@
 import landingJson from "@/lib/content/landing.json";
 import { landingSchema } from "@/lib/content/schema";
 import { setByPath } from "@/lib/content/get-set-path";
+import { isRichtextPath } from "@/lib/content/paths";
+import { sanitizeHtmlServer } from "./sanitize-server";
 import type { DraftEdits } from "./draft-store";
 
 /**
@@ -27,7 +29,11 @@ export const CONTENT_FILE_PATH = "lib/content/landing.json";
 export function buildContentChangeSet(edits: DraftEdits): ChangeSet {
   let doc: unknown = landingJson;
   for (const [path, value] of Object.entries(edits)) {
-    doc = setByPath(doc, path, value);
+    // Server-side defense: HTML-sanitize rich-text values regardless of how the
+    // edit was submitted (the client editor sanitizes too, but can be bypassed).
+    const safe =
+      isRichtextPath(path) && typeof value === "string" ? sanitizeHtmlServer(value) : value;
+    doc = setByPath(doc, path, safe);
   }
 
   // Validate — rejects any edit that produced an out-of-schema document.
