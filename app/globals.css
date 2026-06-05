@@ -1,26 +1,926 @@
+/* Define layer order - later layers have higher priority */
+@layer base, components, utilities;
+
+/* Import UI library into lower-priority layer */
+@import "../node_modules/@syscore/ui-library/client/global.css" layer(base);
+
 @import "tailwindcss";
 
+/* Mazzard font-face overrides — adds `font-display: swap` so the browser renders
+   fallback text immediately instead of blocking up to 3s (FOIT → FOUT). The
+   ui-library ships these without `font-display`, which pushes LCP. Declared
+   outside any @layer so they win the cascade over the layered import. */
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-black.otf"); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-blackitalic.otf"); font-weight: 900; font-style: italic; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-extrabold.otf"); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-extrabolditalic.otf"); font-weight: 800; font-style: italic; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-bold.otf"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-bolditalic.otf"); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-semibold.otf"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-semibolditalic.otf"); font-weight: 600; font-style: italic; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-medium.otf"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-mediumitalic.otf"); font-weight: 500; font-style: italic; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-regular.otf"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-italic.otf"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-light.otf"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-lightitalic.otf"); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-extralight.otf"); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-extralightitalic.otf"); font-weight: 200; font-style: italic; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-thin.otf"); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: "Mazzard Soft M"; src: url("/fonts/Mazzard-M/mazzardsoftm-thinitalic.otf"); font-weight: 100; font-style: italic; font-display: swap; }
+
+@plugin 'tailwindcss-animate';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Concept color tiers — outside @theme so they're available to var() in inline styles */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-air-light: rgba(135, 223, 242, 0.12);
+  --color-air-border: rgba(135, 223, 242, 0.24);
+  --color-air-contrast: #7ccddf;
+  --color-air-text: #16adcf;
+
+  --color-water-light: rgba(57, 201, 234, 0.12);
+  --color-water-border: rgba(57, 201, 234, 0.24);
+  --color-water-contrast: #39c9ea;
+  --color-water-text: #109bbb;
+
+  --color-nourishment-light: rgba(23, 170, 141, 0.12);
+  --color-nourishment-border: rgba(23, 170, 141, 0.24);
+  --color-nourishment-contrast: #17aa8d;
+  --color-nourishment-text: #17aa8d;
+
+  --color-light-light: rgba(138, 239, 219, 0.12);
+  --color-light-border: rgba(138, 239, 219, 0.24);
+  --color-light-contrast: #7fdcc9;
+  --color-light-text: #1bc5a3;
+
+  --color-movement-light: rgba(20, 158, 189, 0.12);
+  --color-movement-border: rgba(20, 158, 189, 0.24);
+  --color-movement-contrast: #149ebd;
+  --color-movement-text: #149ebd;
+
+  --color-thermal-comfort-light: rgba(62, 221, 191, 0.12);
+  --color-thermal-comfort-border: rgba(62, 221, 191, 0.24);
+  --color-thermal-comfort-contrast: #39cbb0;
+  --color-thermal-comfort-text: #1bc5a3;
+
+  --color-sound-light: rgba(12, 112, 92, 0.12);
+  --color-sound-border: rgba(12, 112, 92, 0.24);
+  --color-sound-contrast: #0c705c;
+  --color-sound-text: #0c705c;
+
+  --color-materials-light: rgba(10, 79, 65, 0.08);
+  --color-materials-border: rgba(10, 79, 65, 0.16);
+  --color-materials-contrast: #0a4f41;
+  --color-materials-text: #0a4f41;
+
+  --color-community-light: rgba(15, 116, 138, 0.12);
+  --color-community-border: rgba(15, 116, 138, 0.24);
+  --color-community-contrast: #0f748a;
+  --color-community-text: #0f748a;
+
+  --color-mind-light: rgba(10, 81, 97, 0.08);
+  --color-mind-border: rgba(10, 81, 97, 0.16);
+  --color-mind-contrast: #0a5161;
+  --color-mind-text: #0a5161;
+
+  --color-innovation-light: rgba(82, 84, 93, 0.08);
+  --color-innovation-border: rgba(82, 84, 93, 0.16);
+  --color-innovation-contrast: #52545d;
+  --color-innovation-text: #52545d;
+
+  --color-concept-inactive-bg: #eff5fb;
+  --color-concept-inactive-stroke: #2e74ad;
+
+  /* Concept solid colors — also in :root so var() works in inline styles */
+  --color-air: #87dff2;
+  --color-water: #39c9ea;
+  --color-nourishment: #17aa8d;
+  --color-light: #8aefdb;
+  --color-movement: #149ebd;
+  --color-thermal-comfort: #3eddbf;
+  --color-sound: #0c705c;
+  --color-materials: #0a4f41;
+  --color-community: #0f748a;
+  --color-mind: #0a5161;
+  --color-innovation: #52545d;
+
+  /* Stacking tiers — see app/globals.css `.dialog-sheet` block and
+     components/ui/mobile-nav.tsx. Modals at z-50, MobileNav chrome at z-60. */
+  --z-modal: 50;
+  --z-mobile-nav: 60;
+  /* MobileNav writes the live nav height here via ResizeObserver while
+     mounted; this fallback covers SSR and the first render frame. */
+  --mobile-nav-height: 4.5rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@theme {
+  --color-inherit: inherit;
+  --color-current: currentColor;
+  --color-transparent: transparent;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Semantic colors for base styles */
+  --color-background: #ffffff;
+  --color-foreground: #282a31;
+
+  /* Figma Design System Colors */
+  --color-white: #fff;
+  --color-black: #000;
+
+  --color-gray-50: #f9f9fa;
+  --color-gray-100: #eff1f2;
+  --color-gray-200: #dedfe3;
+  --color-gray-300: #cbcdd2;
+  --color-gray-400: #9fa2ab;
+  --color-gray-500: #71747d;
+  --color-gray-600: #52545d;
+  --color-gray-700: #3e4049;
+  --color-gray-800: #282a31;
+  --color-gray-900: #171820;
+
+  --color-blue-50: #fbfdfe;
+  --color-blue-100: #eff5fb;
+  --color-blue-200: #cbe0f1;
+  --color-blue-300: #a3c8e6;
+  --color-blue-400: #72abd9;
+  --color-blue-500: #3481c1;
+  --color-blue-600: #2e74ad;
+  --color-blue-700: #286495;
+  --color-blue-800: #22547d;
+  --color-blue-900: #183b58;
+
+  --color-cyan-50: #fafeff;
+  --color-cyan-100: #d6f4fb;
+  --color-cyan-200: #95e2f4;
+  --color-cyan-300: #39c9ea;
+  --color-cyan-400: #18bde2;
+  --color-cyan-500: #16adcf;
+  --color-cyan-600: #149ebd;
+  --color-cyan-700: #128ba6;
+  --color-cyan-800: #0f748a;
+  --color-cyan-900: #0a5161;
+
+  --color-emerald-50: #fbfefe;
+  --color-emerald-100: #e0fbf5;
+  --color-emerald-200: #bcf6ea;
+  --color-emerald-300: #8aefdb;
+  --color-emerald-400: #50e7ca;
+  --color-emerald-500: #1dd7b2;
+  --color-emerald-600: #1bc5a3;
+  --color-emerald-700: #17aa8d;
+  --color-emerald-800: #138b73;
+  --color-emerald-900: #0e6352;
+
+  --color-plum-50: #fdfcfd;
+  --color-plum-100: #f7f2f6;
+  --color-plum-200: #f0e1ed;
+  --color-plum-300: #e8cae1;
+  --color-plum-400: #dcadd2;
+  --color-plum-500: #bf78ae;
+  --color-plum-600: #aa6a9b;
+  --color-plum-700: #905c84;
+  --color-plum-800: #7f5075;
+  --color-plum-900: #633e5a;
+
+  --color-coral-50: #fefcfb;
+  --color-coral-100: #fcf4f2;
+  --color-coral-200: #f8dfd8;
+  --color-coral-300: #f4c9be;
+  --color-coral-400: #f0aa99;
+  --color-coral-500: #ed896f;
+  --color-coral-600: #e67357;
+  --color-coral-700: #dc5432;
+  --color-coral-800: #bc4324;
+  --color-coral-900: #81311d;
+
+  --color-pink-50: #fefbfb;
+  --color-pink-100: #fceeef;
+  --color-pink-200: #f7d4d8;
+  --color-pink-300: #f2b4bb;
+  --color-pink-400: #efa4ad;
+  --color-pink-500: #eb8e99;
+  --color-pink-600: #e77481;
+  --color-pink-700: #e25566;
+  --color-pink-800: #c92e3f;
+  --color-pink-900: #9d1b2a;
+
+  --color-bronze-50: #fefdfb;
+  --color-bronze-100: #fbf8f3;
+  --color-bronze-200: #f8f1e8;
+  --color-bronze-300: #f3e7d8;
+  --color-bronze-400: #eedec9;
+  --color-bronze-500: #e8d2b5;
+  --color-bronze-600: #dcba8e;
+  --color-bronze-700: #d0a367;
+  --color-bronze-800: #bb833a;
+  --color-bronze-900: #845d29;
+
+  --color-silver-50: #fcfcfd;
+  --color-silver-100: #f6f7f8;
+  --color-silver-200: #edf0f2;
+  --color-silver-300: #e2e5e9;
+  --color-silver-400: #d6dbe0;
+  --color-silver-500: #c8ced6;
+  --color-silver-600: #bcc4cd;
+  --color-silver-700: #a2adb9;
+  --color-silver-800: #8190a1;
+  --color-silver-900: #5c6a7b;
+
+  --color-gold-50: #fefdfb;
+  --color-gold-100: #fdfcf6;
+  --color-gold-200: #f9f5e1;
+  --color-gold-300: #f6efd0;
+  --color-gold-400: #f2e8bb;
+  --color-gold-500: #eee2aa;
+  --color-gold-600: #eada94;
+  --color-gold-700: #e5d27b;
+  --color-gold-800: #cdae28;
+  --color-gold-900: #917c1d;
+
+  --color-platinum-50: #fcfcfd;
+  --color-platinum-100: #f7f7f8;
+  --color-platinum-200: #ececee;
+  --color-platinum-300: #e2e1e5;
+  --color-platinum-400: #d2d1d6;
+  --color-platinum-500: #c6c5cc;
+  --color-platinum-600: #b4b3bc;
+  --color-platinum-700: #9f9da9;
+  --color-platinum-800: #848291;
+  --color-platinum-900: #5d5b67;
+
+  --color-beige-50: #fdfcfc;
+  --color-beige-100: #fbfaf9;
+  --color-beige-200: #efeae6;
+  --color-beige-300: #e3dbd6;
+  --color-beige-400: #d3cac4;
+  --color-beige-500: #c1b6af;
+  --color-beige-600: #b4a9a1;
+  --color-beige-700: #a79a92;
+  --color-beige-800: #8e837b;
+  --color-beige-900: #716962;
+
+  /* Concept solid colors — aliased from :root so Tailwind generates utilities (bg-air, text-mind, etc.) */
+  --color-air: var(--color-air);
+  --color-water: var(--color-water);
+  --color-nourishment: var(--color-nourishment);
+  --color-light: var(--color-light);
+  --color-movement: var(--color-movement);
+  --color-thermal-comfort: var(--color-thermal-comfort);
+  --color-sound: var(--color-sound);
+  --color-materials: var(--color-materials);
+  --color-community: var(--color-community);
+  --color-mind: var(--color-mind);
+  --color-innovation: var(--color-innovation);
+
+  --color-healthsafety: #72abd9;
+  --color-performance: #0f748a;
+  --color-equity: #17aa8d;
+  --color-coworking: #9a608c;
+
+  --gradient-0: 99deg, #41d5f6 3.39%, #3eecd1 57.86%, #66fcd9 112.32%;
+  --gradient-1: 58deg, #8aefdb 2.8%, #d4bace 41.67%, #cbe0f1 80.55%;
+  --gradient-performance: 180deg, #1dd7b2 0%, #18bde2 50%, #bf78ae 75%, #e67357 100%;
+  --gradient-primary:
+    linear-gradient(0deg, rgba(15, 116, 138, 0.6) 0%, rgba(15, 116, 138, 0.6) 100%),
+    linear-gradient(99deg, #41d5f6 3.39%, #3eecd1 57.86%, #66fcd9 112.32%);
+  --gradient-cta:
+    linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.2) 100%),
+    linear-gradient(99deg, #41d5f6 3.39%, #3eecd1 57.86%, #66fcd9 112.32%);
+
+  --modal-color: rgba(0, 0, 0, 0.08);
+
+  --blur-xs: 2px;
+  --blur-sm: 4px;
+  --blur-md: 8px;
+  --blur-lg: 12px;
+  --blur-xl: 20px;
+
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --radius-sm: 6px;
+  --radius-modal: 24px;
+
+  --shadow-xs: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(16, 24, 40, 0.1), 0 1px 2px -1px rgba(16, 24, 40, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(16, 24, 40, 0.1), 0 2px 4px -2px rgba(16, 24, 40, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(16, 24, 40, 0.1), 0 4px 6px -4px rgba(16, 24, 40, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(16, 24, 40, 0.1), 0 8px 10px -6px rgba(16, 24, 40, 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgba(16, 24, 40, 0.25);
+
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+  --font-dm-sans:
+    "DM Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mazzard: "Mazzard Soft M", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-ftmade: "FtMade", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  html {
+    scrollbar-gutter: auto;
+  }
+
+  body {
+    @apply bg-background text-gray-800 antialiased;
+    font-family: var(--font-mazzard);
+    font-feature-settings:
+      "ss01" on,
+      "ss03" on,
+      "cv01" on;
+  }
+
+  /* Override Radix scroll-lock:
+     - position:relative breaks fixed nav
+     - padding-right compensation adds white bar on macOS overlay scrollbars
+     - overflow:hidden hides the styled scrollbar — use clip to keep it visible */
+  body[data-scroll-locked] {
+    position: static !important;
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+    overflow: clip !important;
+  }
+
+  strong {
+    font-weight: 600;
+  }
+
+  .container-xl {
+    @apply mx-auto max-w-[calc(1728px+64px)] w-full px-8;
+  }
+
+  .container-lg {
+    @apply mx-auto max-w-[calc(1536px+64px)] w-full px-8;
+  }
+
+  .container-sm {
+    @apply mx-auto max-w-[calc(1072px+64px)] w-full px-8;
+  }
+}
+
+@utility btn-primary-gradient {
+  background-image:
+    linear-gradient(0deg, rgba(15, 116, 138, 0.6) 0%, rgba(15, 116, 138, 0.6) 100%),
+    linear-gradient(99deg, #41d5f6 3.39%, #3eecd1 57.86%, #66fcd9 112.32%);
+}
+
+/* Floating button (Feedback / Stylist) — reuse the canonical CTA gradient token
+   (matches FeedbackShell's `var(--gradient-cta)`: 99deg teal + black/20 overlay). */
+@utility btn-floating-gradient {
+  background-image: var(--gradient-cta);
+}
+
+/* Typography Utilities — generated by capsize from actual font metrics */
+@import "./generated-typography.css";
+
+@utility underline-dotted {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 0.75px;
+  text-underline-offset: 2px;
+}
+
+/* =============================================================================
+   8. CUSTOM STYLES - Animations & Component-specific
+   ============================================================================= */
+
+/* Scroll-to-field highlight animation */
+@keyframes scroll-highlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+  20% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+.scroll-highlight {
+  animation: scroll-highlight-pulse 1s ease-out;
+  border-radius: 8px;
+}
+
+/* Appendix Content Styles */
+.appendix-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #52545d;
+}
+
+.appendix-content p {
+  margin-bottom: 1rem;
+  @apply body-base;
+}
+
+.appendix-content em {
+  font-style: normal;
+  font-weight: 500;
+}
+
+.appendix-content strong {
+  color: #282a31;
+  font-weight: 600;
+}
+
+.appendix-content ol {
+  list-style: none;
+  counter-reset: appendix-counter;
+  padding-left: 0;
+  margin: 0;
+}
+
+.appendix-content ol > li {
+  counter-increment: appendix-counter;
+  position: relative;
+  padding-left: 3.5rem;
+  margin-bottom: 16px;
+  padding-top: 6px;
+  @apply body-base text-gray-800;
+}
+
+.appendix-content ol > li::before {
+  content: counter(appendix-counter, lower-roman);
+  @apply absolute left-0 top-0 size-8 flex items-center justify-center;
+  @apply text-plum-800 number-small font-semibold bg-plum-50 border-[1.5px] border-plum-200 rounded-sm;
+}
+
+.appendix-content ul {
+  list-style: none;
+  padding-left: 8px;
+  margin-top: 16px;
+}
+
+.appendix-content ul > li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 1rem;
+  @apply body-base text-gray-800;
+}
+
+.appendix-content ul > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.5em;
+  width: 4px;
+  height: 4px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4' fill='none'%3E%3Ccircle cx='2' cy='2' r='2' fill='%2371747D'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+}
+
+.appendix-content .appendix-rule {
+  @apply overline-medium text-plum-800 min-h-8 flex items-center font-semibold;
+}
+
+/* Hero LCP element — CSS animation so h1 is paintable before JS hydration */
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .siri-orb::before {
+    animation: none;
+  }
+  [class*="hero-fade-up"] {
+    animation: none !important;
+  }
+}
+
+/* ============================================
+   Formatted HTML Content Styles (TipTap output)
+   ============================================ */
+
+.formatted-html-content ul,
+.formatted-html-content ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+  list-style-position: outside !important;
+  display: block !important;
+}
+
+.formatted-html-content ul {
+  list-style-type: disc !important;
+}
+
+.formatted-html-content ol {
+  list-style-type: decimal !important;
+}
+
+.formatted-html-content li {
+  margin: 0.35em 0;
+  display: list-item !important;
+}
+
+/* Override appendix block display for TipTap HTML lists inside appendix content */
+.formatted-html-content.appendix-formatted-text li {
+  display: list-item !important;
+}
+
+.formatted-html-content li > p {
+  margin: 0;
+}
+
+/* Nested lists: more indentation, circle markers */
+.formatted-html-content ul ul,
+.formatted-html-content ol ul {
+  list-style-type: circle !important;
+  padding-left: 2.5em;
+  margin: 0.25em 0;
+}
+
+.formatted-html-content ul ul ul {
+  list-style-type: square !important;
+}
+
+.formatted-html-content ol ol {
+  list-style-type: lower-alpha !important;
+}
+
+.formatted-html-content ol ol ol {
+  list-style-type: lower-roman !important;
+}
+
+.formatted-html-content p {
+  margin: 0.5em 0;
+}
+
+.formatted-html-content strong {
+  font-weight: bold;
+}
+
+.formatted-html-content em {
+  font-style: italic;
+}
+
+.formatted-html-content h1,
+.formatted-html-content h2,
+.formatted-html-content h3,
+.formatted-html-content h4,
+.formatted-html-content h5,
+.formatted-html-content h6 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+.formatted-html-content table {
+  width: 100%;
+  border-collapse: collapse !important;
+  margin: 1em 0;
+  display: table !important;
+  border: 1px solid #d1d5db !important;
+}
+
+.formatted-html-content thead {
+  display: table-header-group !important;
+  background-color: #f9fafb !important;
+}
+
+.formatted-html-content tbody {
+  display: table-row-group !important;
+}
+
+.formatted-html-content tr {
+  display: table-row !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.formatted-html-content tr:nth-child(even) {
+  background-color: #f9fafb !important;
+}
+
+.formatted-html-content th,
+.formatted-html-content td {
+  display: table-cell !important;
+  padding: 0.75rem !important;
+  border: 1px solid #d1d5db !important;
+  text-align: left !important;
+  vertical-align: top !important;
+}
+
+.formatted-html-content th {
+  font-weight: 600 !important;
+  background-color: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+.formatted-html-content td {
+  color: #374151 !important;
+}
+
+/* ============================================
+   FormattedText table styles
+   ============================================ */
+
+.formatted-text table {
+  width: 100%;
+  border-collapse: collapse !important;
+  margin: 1em 0;
+  display: table !important;
+  border: 1px solid #d1d5db !important;
+}
+
+.formatted-text thead {
+  display: table-header-group !important;
+  background-color: var(--color-cyan-50) !important;
+}
+
+.formatted-text tbody {
+  display: table-row-group !important;
+}
+
+.formatted-text tr {
+  display: table-row !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.formatted-text tr:nth-child(even) {
+  background-color: #f9fafb !important;
+}
+
+.formatted-text th,
+.formatted-text td {
+  display: table-cell !important;
+  padding: 0.75rem !important;
+  border: 1px solid #d1d5db !important;
+  text-align: left !important;
+  vertical-align: top !important;
+}
+
+.formatted-text td br,
+.formatted-text th br,
+table td br,
+table th br {
+  display: block !important;
+  line-height: 1em !important;
+  margin: 0.5em 0 !important;
+  content: "" !important;
+}
+
+.formatted-text th {
+  font-weight: 600 !important;
+  background-color: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+.formatted-text td {
+  color: #374151 !important;
+}
+
+/* ============================================
+   Appendix-specific table styles
+   Matches Figma: rounded container, no vertical
+   borders, cyan uppercase headers, subtle
+   alternating columns, horizontal separators only.
+   ============================================ */
+
+.formatted-text.appendix-formatted-text table {
+  border: 1px solid var(--color-gray-200) !important;
+  border-radius: 8px !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  overflow: hidden !important;
+  margin: 1em 0 !important;
+}
+
+/* Cell styling: horizontal row separators via border-top (avoids double border at table bottom) */
+.formatted-text.appendix-formatted-text th,
+.formatted-text.appendix-formatted-text td {
+  border: 0 !important;
+  border-top: 1px solid var(--color-gray-200) !important;
+  padding: 1.5rem !important;
+  vertical-align: top !important;
+  text-align: left !important;
+}
+
+/* First tbody row: no top border (thead bottom or table top already provides it) */
+.formatted-text.appendix-formatted-text tbody tr:first-child td,
+.formatted-text.appendix-formatted-text tbody tr:first-child th {
+  border-top: 0 !important;
+}
+
+/* thead cells: no top border */
+.formatted-text.appendix-formatted-text thead th,
+.formatted-text.appendix-formatted-text thead td {
+  border-top: 0 !important;
+}
+
+/* No row-level borders or alternation — column alternation handles bg */
+.formatted-text.appendix-formatted-text tr,
+.formatted-text.appendix-formatted-text tr:nth-child(odd),
+.formatted-text.appendix-formatted-text tr:nth-child(even) {
+  border: 0 !important;
+  background-color: transparent !important;
+}
+
+/* Header row: cyan-50 background, cyan-800 overline-medium text */
+.formatted-text.appendix-formatted-text thead th,
+.formatted-text.appendix-formatted-text thead td {
+  background-color: var(--color-cyan-50) !important;
+  color: var(--color-cyan-800) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 1px solid var(--color-gray-200) !important;
+  padding: 1rem 1.5rem !important;
+}
+
+/* Body cells: base styles (must come before data-col overrides) */
+.formatted-text.appendix-formatted-text tbody td,
+.formatted-text.appendix-formatted-text tbody th {
+  background-color: #ffffff !important;
+  color: var(--color-gray-800) !important;
+  font-weight: 400 !important;
+}
+
+/* Full rows (col 1 present): odd=white, even=gray-50 */
+.formatted-text.appendix-formatted-text tr.col-start-white td:nth-child(odd) {
+  background-color: #ffffff !important;
+}
+.formatted-text.appendix-formatted-text tr.col-start-white td:nth-child(even) {
+  background-color: var(--color-gray-50) !important;
+}
+.formatted-text.appendix-formatted-text tr.col-start-white td:first-child {
+  font-weight: 500 !important;
+}
+
+/* Continuation rows (col 1 spanned, starts at col 2): odd=gray-50, even=white */
+.formatted-text.appendix-formatted-text tr.col-start-gray td:nth-child(odd) {
+  background-color: var(--color-gray-50) !important;
+}
+.formatted-text.appendix-formatted-text tr.col-start-gray td:nth-child(even) {
+  background-color: #ffffff !important;
+}
+
+/* Fallback: when table has no <thead>, style first row as header */
+.formatted-text.appendix-formatted-text table > tbody:first-child > tr:first-child > th,
+.formatted-text.appendix-formatted-text table > tbody:first-child > tr:first-child > td {
+  background-color: var(--color-cyan-50) !important;
+  color: var(--color-cyan-800) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 1px solid var(--color-gray-200) !important;
+}
+
+/* Appendix bullet lists — SVG dot matching FormattedText pattern */
+.formatted-text.appendix-formatted-text ul {
+  list-style: none !important;
+  padding-left: 1rem;
+  margin: 1rem 0;
+}
+
+.formatted-text.appendix-formatted-text ul ul {
+  padding-left: 2rem;
+}
+
+.formatted-text.appendix-formatted-text li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 0.25rem;
+  display: block !important;
+}
+
+.formatted-text.appendix-formatted-text li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 4px;
+  height: 4px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4' fill='none'%3E%3Ccircle cx='2' cy='2' r='2' fill='%2371747D'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+}
+
+/* =============================================================================
+   UI Library Overrides — remove once published to @syscore/ui-library
+   ============================================================================= */
+.tabs-nav {
+  align-items: start;
+}
+
+.tabs-nav-button {
+  align-items: start;
+  padding: 1px 0 0 0;
+}
+
+.tabs-nav--full-width > .tabs-nav-button {
+  padding: 1px 0.75rem 0;
+}
+
+.checkbox {
+  flex-direction: column;
+  width: 16px;
+  height: 16px;
+  aspect-ratio: 1 / 1;
+  border-radius: 3px;
+  border: 1.5px solid var(--color-gray-400, #9fa2ab);
+  background: var(--color-white, #fff);
+  color: var(--color-gray-100, #eff1f2);
+}
+
+.checkbox[data-state="checked"] {
+  background: var(--color-cyan-400, #39c9ea);
+  border-color: var(--color-cyan-700, #128ba6);
+  color: var(--color-white, #fff);
+}
+
+.tag-general {
+  padding-top: 2px;
+}
+
+.tag-general::before,
+.tag-general::after {
+  display: none !important;
+}
+
+/* Library override: row headers use a fixed height: 5rem which clips when
+   content (long titles, wrapped text) needs more vertical space. Switch to
+   min-height so the row grows when needed but still anchors at 5rem.
+   Doubled class selector raises specificity to 0,2,0 to reliably beat the
+   library's layered rule regardless of @layer cascade interactions. */
+.standard-table-row-header.standard-table-row-header {
+  height: auto;
+  min-height: 5rem;
+}
+
+/* Dialog sheet mode — opt in by passing className="dialog-sheet" to
+   <DialogContent>. Snaps to fullscreen at <640px and sits below MobileNav.
+   Library DOM: DialogOverlay > DialogPrimitive.Content.dialog-content
+                                    > .dialog-content-wrapper
+                                      > .dialog-content-inner. */
+@media (max-width: 639px) {
+  .dialog-content.dialog-sheet {
+    width: 100%;
+    min-height: 100dvh;
+    z-index: var(--z-modal);
+  }
+  .dialog-content.dialog-sheet > .dialog-content-wrapper {
+    width: 100%;
+    min-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+  /* Doubled `.dialog-sheet` raises specificity to 0,4,0 — guarantees the
+     background-color override beats the library's `.dialog-content-inner`
+     (0,1,0) regardless of @layer cascade interactions. */
+  .dialog-content.dialog-sheet.dialog-sheet .dialog-content-inner {
+    border-radius: 0;
+    min-height: 100dvh;
+    /* Body is white in sheet mode; the sticky DialogHeader inside owns its
+       own gray-50 background. */
+    background-color: white;
+    /* env(safe-area-inset-*) returns 0 today (no viewport-fit=cover). The
+       max() keeps the layout correct now AND once cover ships. */
+    padding-top: max(env(safe-area-inset-top), 1.5rem);
+    padding-bottom: calc(var(--mobile-nav-height) + max(env(safe-area-inset-bottom), 1.5rem));
+  }
+  .dialog-overlay:has(.dialog-content.dialog-sheet) {
+    padding-top: 0;
+    padding-bottom: 0;
+    background-color: var(--color-gray-50, #f9f9fa);
+    z-index: var(--z-modal);
+  }
+  /* Drop the zoom animation; fade only at full-bleed. Specificity wins
+     against library's .dialog-content[data-state] (one extra class). */
+  .dialog-content.dialog-sheet[data-state="open"] {
+    animation: fade-in 0.15s ease-in-out;
+  }
+  .dialog-content.dialog-sheet[data-state="closed"] {
+    animation: fade-out 0.15s ease-in-out;
+  }
 }

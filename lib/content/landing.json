@@ -1,0 +1,156 @@
+{
+  "hero": {
+    "eyebrow": "One integrated standard",
+    "title": "A first look at the next version of WELL",
+    "body": "Revolutionizing how organizations invest in health—with a unified experience that is simpler to understand, easier to implement and built for scale.",
+    "ctaAuthed": "Explore the standard",
+    "ctaAnon": "Sign in to explore the standard",
+    "commentPeriod": {
+      "label": "",
+      "date": ""
+    }
+  },
+  "intro": {
+    "badge": "Introducing One WELL",
+    "title": {
+      "line1": "Intuitive to navigate",
+      "line2": "More rewarding to achieve"
+    },
+    "paragraphs": [
+      [
+        { "text": "The power of WELL comes from our comprehensive " },
+        { "text": "library of evidence-based strategies", "highlight": true },
+        { "text": ". Today, there are more ways than ever for organizations to implement these strategies, deliver on business goals and earn recognition through certification and rating achievements." }
+      ],
+      [
+        { "text": "Through clearer language, an integrated standard and smarter tools, we are enabling organizations to " },
+        { "text": "earn initial recognition", "highlight": true },
+        { "text": " while scaling toward a long-term vision for health." }
+      ],
+      [
+        { "text": "One WELL", "highlight": true },
+        { "text": " delivers on our commitment to making that journey more efficient and impactful." }
+      ]
+    ]
+  },
+  "features": {
+    "items": [
+      {
+        "title": "Harmonized",
+        "description": "We've harmonized all WELL programs under a single version of the standard. New thematic groupings provide an intuitive, executive-level view, making it easy to pinpoint strategies that align with your goals. Preconditions now qualify for points across the board and every point earned toward a rating is now a point earned toward certification— \n every step forward counts."
+      },
+      {
+        "title": "Clarified",
+        "description": "We've restructured and simplified how each WELL strategy is written, making them more clear, scannable and straightforward to implement. This increased clarity makes WELL easier to translate into different languages and apply across the global market, empowering teams around the world to act with greater precision and confidence."
+      },
+      {
+        "title": "Evergreen",
+        "description": "Like an evergreen tree, the WELL Standard experiences surges of new growth each year as science and best practices evolve. It prioritizes gradual enhancement over restructuring, letting you manage all of your projects within the same version of WELL, one that reflects the latest improvements as they are published over time."
+      },
+      {
+        "title": "Smarter",
+        "description": "We've invested in the WELL platform to serve as an active partner that tracks progress, celebrates wins and provides clear recommendations toward your next milestone. These enhancements enable continuous progress, helping you drive more value and derive greater benefit from every step of your WELL journey."
+      }
+    ]
+  },
+  "tour": {
+    "badge": "Take the Tour",
+    "title": {
+      "highlight": "A new way to experience",
+      "suffix": "WELL"
+    },
+    "subtitle": "Explore the new WELL Standard, designed to make every path through WELL clearer, more connected and easier to navigate.",
+    "chapters": [
+      { "label": "Intro", "description": "" },
+      { "label": "Themes", "description": "" },
+      { "label": "Strategies", "description": "" },
+      { "label": "Clarified language", "description": "" },
+      { "label": "Core", "description": "" },
+      { "label": "Achievements", "description": "" },
+      { "label": "Certification requirements", "description": "" },
+      { "label": "Revision notes", "description": "" },
+      { "label": "Compare with v2", "description": "" },
+      { "label": "Appendices", "description": "" },
+      { "label": "Feedback", "description": "" },
+      { "label": "Outro", "description": "" }
+    ]
+  },
+  "vision": {
+    "badge": "Our vision",
+    "tagline": "One standard. One experience. One WELL.",
+    "stickyStatements": ["One standard", "One experience", "One WELL"],
+    "paragraphs": [
+      [
+        { "text": "Imagine spaces that energize your day. Environments that sharpen your thinking. Policies that protect your health. Places and programs working together to " },
+        { "text": "inspire your best work and your best life.", "highlight": true }
+      ],
+      [
+        { "text": "This is WELL in action—a " },
+        { "text": "blueprint for everyone to thrive.", "highlight": true }
+      ]
+    ]
+  },
+  "roadmap": {
+    "badge": "Roadmap",
+    "title": {
+      "highlight": "What's coming",
+      "suffix": "next"
+    },
+    "intro": "We’re debuting One WELL in phases, starting with public comment and moving toward open enrollment with continuous enhancements now and into the future.",
+    "milestones": [
+      {
+        "phase": "Phase 1",
+        "status": "coming-soon",
+        "ctaVariant": "light",
+        "statusText": "Public comment is now closed",
+        "title": "Standard in public comment",
+        "description": "The WELL Standard remains available to explore following the close of public comment, as we review feedback and continue shaping the final version.",
+        "cta": "",
+        "ctaHref": "#",
+        "ctaAuthed": "",
+        "ctaAuthedHref": "#"
+      },
+      {
+        "phase": "Phase 2",
+        "status": "open",
+        "ctaVariant": "dark",
+        "statusText": "In progress",
+        "title": "Finalizing the standard",
+        "description": "Insights from public comment will be used to refine and finalize the standard alongside the debut of new process and platform enhancements. The WELL Forum will serve as the hub to preview these developments and provide feedback before they are released.",
+        "cta": "Stay in the know in the WELL Forum",
+        "ctaHref": "https://forum.wearewell.com/spaces/23005783"
+      },
+      {
+        "phase": "Phase 3",
+        "status": "coming-soon",
+        "ctaVariant": "dark",
+        "statusText": "",
+        "title": "Enrollment",
+        "description": "Organizations can enroll in the latest version of WELL, allowing them to apply the new standard across their portfolio. Existing customers will have the opportunity to transition their active projects over time.",
+        "cta": "",
+        "ctaHref": "#"
+      },
+      {
+        "phase": "Phase 4",
+        "status": "coming-soon",
+        "ctaVariant": "dark",
+        "statusText": "",
+        "title": "Ongoing enhancements",
+        "description": "Experience regular improvements to the WELL process and platform.",
+        "cta": "",
+        "ctaHref": "#"
+      }
+    ]
+  },
+  "feedback": {
+    "badge": "Shape the future of well",
+    "title": "Tell us what you think",
+    "body": "Your feedback will shape what's possible with the next version of WELL.",
+    "ctaAuthed": "Provide feedback",
+    "ctaAnon": "Sign in to provide feedback"
+  },
+  "footer": {
+    "copyright": "© 2026 International WELL Building Institute PBC. All rights reserved.",
+    "trademark": "International WELL Building Institute, IWBI, the WELL Building Standard, WELL v2, WELL Certified, WELLCERTIFIED, WELL AP, WELL EP, WELL Score, The WELL Conference, We Are WELL, the WELL Community Standard, WELL Health-Safety Rated, WELL Performance Rated, WELL Equity Rated, WELL Equity, WELL Residence, Works with WELL, WELL and others, and their related logos are trademarks or certification marks of International WELL Building Institute pbc in the United States and other countries."
+  }
+}

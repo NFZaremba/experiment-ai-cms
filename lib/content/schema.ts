@@ -1,0 +1,88 @@
+import { z } from "zod";
+
+/**
+ * Zod schema for the landing-page content document.
+ *
+ * This schema is the WRITE ALLOWLIST for the AI Content Studio: the editor and
+ * the AI rewrite route may only produce a document that parses cleanly here.
+ * An unknown path or a wrong-typed value is rejected before it ever reaches a
+ * draft or a commit — which is what keeps the content layer unable to express
+ * anything but data (never executable code).
+ */
+
+/** A rich-text inline segment — `highlight` marks an emphasized phrase. */
+const segment = z.object({
+  text: z.string(),
+  highlight: z.boolean().optional(),
+});
+
+/** A rich-text paragraph: an ordered list of inline segments. */
+const paragraph = z.array(segment);
+
+const milestone = z.object({
+  phase: z.string(),
+  status: z.enum(["open", "coming-soon"]),
+  ctaVariant: z.enum(["light", "dark"]),
+  statusText: z.string(),
+  title: z.string(),
+  description: z.string(),
+  cta: z.string(),
+  ctaHref: z.string(),
+  // Phase-1 milestone carries an authenticated-CTA override; others omit it.
+  ctaAuthed: z.string().optional(),
+  ctaAuthedHref: z.string().optional(),
+});
+
+export const landingSchema = z.object({
+  hero: z.object({
+    eyebrow: z.string(),
+    title: z.string(),
+    body: z.string(),
+    ctaAuthed: z.string(),
+    ctaAnon: z.string(),
+    commentPeriod: z.object({
+      label: z.string(),
+      date: z.string(),
+    }),
+  }),
+  intro: z.object({
+    badge: z.string(),
+    title: z.object({ line1: z.string(), line2: z.string() }),
+    paragraphs: z.array(paragraph),
+  }),
+  features: z.object({
+    items: z.array(z.object({ title: z.string(), description: z.string() })),
+  }),
+  tour: z.object({
+    badge: z.string(),
+    title: z.object({ highlight: z.string(), suffix: z.string() }),
+    subtitle: z.string(),
+    chapters: z.array(z.object({ label: z.string(), description: z.string() })),
+  }),
+  vision: z.object({
+    badge: z.string(),
+    tagline: z.string(),
+    stickyStatements: z.array(z.string()),
+    paragraphs: z.array(paragraph),
+  }),
+  roadmap: z.object({
+    badge: z.string(),
+    title: z.object({ highlight: z.string(), suffix: z.string() }),
+    intro: z.string(),
+    milestones: z.array(milestone),
+  }),
+  feedback: z.object({
+    badge: z.string(),
+    title: z.string(),
+    body: z.string(),
+    ctaAuthed: z.string(),
+    ctaAnon: z.string(),
+  }),
+  footer: z.object({
+    copyright: z.string(),
+    trademark: z.string(),
+  }),
+});
+
+export type Segment = z.infer<typeof segment>;
+export type LandingContent = z.infer<typeof landingSchema>;
