@@ -90,6 +90,41 @@ export async function publishChangeSet(
   return { prNumber: pr.data.number, prUrl: pr.data.html_url, baseSha };
 }
 
+export type PullStatus = "pending" | "success" | "failure";
+
+/**
+ * Combined CI status for a PR's head commit (Netlify posts a deploy-preview
+ * check/status here). Returns "pending" until something is reported.
+ */
+export async function getPullStatus(prNumber: number): Promise<PullStatus> {
+  const { octokit, owner, repo } = config();
+  const pr = await octokit.pulls.get({ owner, repo, pull_number: prNumber });
+  const ref = pr.data.head.sha;
+
+  const [combined, checks] = await Promise.all([
+    octokit.repos.getCombinedStatusForRef({ owner, repo, ref }),
+    octokit.checks.listForRef({ owner, repo, ref }),
+  ]);
+  const statuses = combined.data.statuses ?? [];
+  const runs = checks.data.check_runs ?? [];
+
+  if (statuses.length === 0 && runs.length === 0) return "pending"; // not reported yet
+
+  const failed =
+    statuses.some((s) => s.state === "failure" || s.state === "error") ||
+    runs.some((r) =>
+      ["failure", "timed_out", "cancelled", "action_required"].includes(r.conclusion ?? "")
+    );
+  if (failed) return "failure";
+
+  const pending =
+    statuses.some((s) => s.state === "pending") ||
+    runs.some((r) => r.status !== "completed");
+  if (pending) return "pending";
+
+  return "success";
+}
+
 /** Squash-merge a PR (→ production deploy on merge to base). */
 export async function mergePullRequest(prNumber: number): Promise<{ merged: boolean; sha?: string }> {
   const { octokit, owner, repo } = config();

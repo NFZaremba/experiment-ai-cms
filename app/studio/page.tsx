@@ -30,6 +30,9 @@ export default function StudioPage() {
   const [merging, setMerging] = useState(false);
   const [merged, setMerged] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewStatus, setPreviewStatus] = useState<
+    "pending" | "success" | "failure" | null
+  >(null);
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
@@ -70,6 +73,39 @@ export default function StudioPage() {
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
   }, [selection]);
+
+  // Poll the open PR's deploy-preview status so "Publish for real" only
+  // unlocks once the preview build is green. Re-runs on mount if a publish
+  // result was restored from localStorage.
+  useEffect(() => {
+    if (!result) {
+      setPreviewStatus(null);
+      return;
+    }
+    let cancelled = false;
+    let tries = 0;
+    setPreviewStatus("pending");
+    const poll = async () => {
+      tries += 1;
+      try {
+        const res = await fetch(`/api/studio/status?pr=${result.prNumber}`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (res.ok && (data.state === "success" || data.state === "failure")) {
+          setPreviewStatus(data.state);
+          return; // terminal — stop polling
+        }
+        setPreviewStatus("pending");
+      } catch {
+        /* transient — keep polling */
+      }
+      if (!cancelled && tries < 40) setTimeout(poll, 5000);
+    };
+    poll();
+    return () => {
+      cancelled = true;
+    };
+  }, [result]);
 
   const applyEdit = useCallback(
     (path: string, newValue: FieldValue, fieldType: FieldType) => {
@@ -184,35 +220,46 @@ export default function StudioPage() {
           ✓ Published to production. The live site is rebuilding now.
         </div>
       )}
-      {result && (
+      {result && previewStatus !== "failure" && (
         <div className="flex shrink-0 items-center justify-center gap-3 bg-amber-50 px-4 py-2 text-xs text-amber-900">
-          <span>Preview ready for review.</span>
-          {result.previewUrl ? (
-            <a
-              href={result.previewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium underline"
-            >
-              Open deploy preview ↗
-            </a>
+          {previewStatus === "success" ? (
+            <>
+              <span>✓ Preview ready.</span>
+              <a
+                href={result.previewUrl ?? result.prUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium underline"
+              >
+                {result.previewUrl ? "Open deploy preview ↗" : "View pull request ↗"}
+              </a>
+              <button
+                onClick={publishForReal}
+                disabled={merging}
+                className="rounded-md bg-emerald-700 px-2.5 py-1 font-medium text-white hover:bg-emerald-800 disabled:opacity-40"
+              >
+                {merging ? "Publishing…" : "Publish for real"}
+              </button>
+            </>
           ) : (
-            <a
-              href={result.prUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium underline"
-            >
-              View pull request ↗
-            </a>
+            <span className="inline-flex items-center gap-2">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+              Building deploy preview… (~1–2 min). “Publish for real” unlocks when it’s green.
+            </span>
           )}
-          <button
-            onClick={publishForReal}
-            disabled={merging}
-            className="rounded-md bg-emerald-700 px-2.5 py-1 font-medium text-white hover:bg-emerald-800 disabled:opacity-40"
+        </div>
+      )}
+      {result && previewStatus === "failure" && (
+        <div className="flex shrink-0 items-center justify-center gap-3 bg-red-50 px-4 py-2 text-xs text-red-700">
+          <span>✕ Preview build failed — don’t publish.</span>
+          <a
+            href={result.prUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium underline"
           >
-            {merging ? "Publishing…" : "Publish for real"}
-          </button>
+            View logs on the PR ↗
+          </a>
         </div>
       )}
       {!error && !merged && !result && (
