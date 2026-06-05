@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { ReactLenis, useLenis } from "lenis/react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { IntroSection, HeroSection, Footer } from "@/components/landing";
 import { Text, Button } from "@syscore/ui-library";
 import { getLandingContent } from "@/lib/content";
+import { EditModeBridge } from "@/components/studio/EditModeBridge";
 
 // Below-fold sections — split into separate chunks so they don't block
 // initial hydration. ssr: true keeps the HTML in the server response so
@@ -43,6 +44,17 @@ export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   const fixedCtaRef = useRef<HTMLDivElement>(null);
 
+  // Edit mode: the Studio shell loads this page in an iframe as `/?edit=1`.
+  // In edit mode we freeze the smooth-scroll/animation system so element rects
+  // stay stable for the floating editor panel. Computed once on the client;
+  // affects only effects + Lenis options (no DOM difference → no hydration gap).
+  const isEdit = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("edit") === "1",
+    []
+  );
+
   // Prevent browser scroll restoration so ScrollTrigger pins calculate correctly
   useEffect(() => {
     if ("scrollRestoration" in history) {
@@ -55,6 +67,7 @@ export default function Home() {
   // ScrollTriggers fire before user scroll, so registering them late is safe.
   // gsap.context() handles cleanup of all animations created within it.
   useEffect(() => {
+    if (isEdit) return; // edit mode: no scroll-triggered animations/pins
     const container = containerRef.current;
     if (!container) return;
 
@@ -184,12 +197,13 @@ export default function Home() {
       refreshListeners.forEach((fn) => fn());
       ctx?.revert();
     };
-  }, []);
+  }, [isEdit]);
 
   return (
-    <ReactLenis root options={{ autoRaf: true }}>
+    <ReactLenis root options={{ autoRaf: !isEdit, smoothWheel: !isEdit }}>
       <main ref={containerRef} className="relative">
         <ScrollSync />
+        <EditModeBridge active={isEdit} />
         {/* Main content panel — sits on top, scrolls naturally */}
         <section className="main-panel relative z-10 bg-gray-50">
           <HeroSection />
