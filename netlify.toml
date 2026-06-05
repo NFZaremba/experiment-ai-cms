@@ -1,0 +1,8 @@
+[build]
+  command = "npm run build"
+
+# The official Next.js runtime (auto-installed by Netlify) handles the publish
+# directory, SSR functions, and image optimization. Deploy Previews are enabled
+# by default for pull requests, which is what the Content Studio links to.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

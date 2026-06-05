@@ -18,18 +18,37 @@
     },
     "paragraphs": [
       [
-        { "text": "The power of WELL comes from our comprehensive " },
-        { "text": "library of evidence-based strategies", "highlight": true },
-        { "text": ". Today, there are more ways than ever for organizations to implement these strategies, deliver on business goals and earn recognition through certification and rating achievements." }
+        {
+          "text": "The power of WELL comes from our comprehensive "
+        },
+        {
+          "text": "library of evidence-based strategies",
+          "highlight": true
+        },
+        {
+          "text": ". Today, there are more ways than ever for organizations to implement these strategies, deliver on business goals and earn recognition through certification and rating achievements."
+        }
       ],
       [
-        { "text": "Through clearer language, an integrated standard and smarter tools, we are enabling organizations to " },
-        { "text": "earn initial recognition", "highlight": true },
-        { "text": " while scaling toward a long-term vision for health." }
+        {
+          "text": "Through clearer language, an integrated standard and smarter tools, we are enabling organizations to "
+        },
+        {
+          "text": "earn initial recognition",
+          "highlight": true
+        },
+        {
+          "text": " while scaling toward a long-term vision for health."
+        }
       ],
       [
-        { "text": "One WELL", "highlight": true },
-        { "text": " delivers on our commitment to making that journey more efficient and impactful." }
+        {
+          "text": "One WELL",
+          "highlight": true
+        },
+        {
+          "text": " delivers on our commitment to making that journey more efficient and impactful."
+        }
       ]
     ]
   },
@@ -61,32 +80,82 @@
     },
     "subtitle": "Explore the new WELL Standard, designed to make every path through WELL clearer, more connected and easier to navigate.",
     "chapters": [
-      { "label": "Intro", "description": "" },
-      { "label": "Themes", "description": "" },
-      { "label": "Strategies", "description": "" },
-      { "label": "Clarified language", "description": "" },
-      { "label": "Core", "description": "" },
-      { "label": "Achievements", "description": "" },
-      { "label": "Certification requirements", "description": "" },
-      { "label": "Revision notes", "description": "" },
-      { "label": "Compare with v2", "description": "" },
-      { "label": "Appendices", "description": "" },
-      { "label": "Feedback", "description": "" },
-      { "label": "Outro", "description": "" }
+      {
+        "label": "Intro",
+        "description": ""
+      },
+      {
+        "label": "Themes",
+        "description": ""
+      },
+      {
+        "label": "Strategies",
+        "description": ""
+      },
+      {
+        "label": "Clarified language",
+        "description": ""
+      },
+      {
+        "label": "Core",
+        "description": ""
+      },
+      {
+        "label": "Achievements",
+        "description": ""
+      },
+      {
+        "label": "Certification requirements",
+        "description": ""
+      },
+      {
+        "label": "Revision notes",
+        "description": ""
+      },
+      {
+        "label": "Compare with v2",
+        "description": ""
+      },
+      {
+        "label": "Appendices",
+        "description": ""
+      },
+      {
+        "label": "Feedback",
+        "description": ""
+      },
+      {
+        "label": "Outro",
+        "description": ""
+      }
     ]
   },
   "vision": {
     "badge": "Our vision",
     "tagline": "One standard. One experience. One WELL.",
-    "stickyStatements": ["One standard", "One experience", "One WELL"],
+    "stickyStatements": [
+      "One standard",
+      "One experience",
+      "One WELL"
+    ],
     "paragraphs": [
       [
-        { "text": "Imagine spaces that energize your day. Environments that sharpen your thinking. Policies that protect your health. Places and programs working together to " },
-        { "text": "inspire your best work and your best life.", "highlight": true }
+        {
+          "text": "Imagine spaces that energize your day. Environments that sharpen your thinking. Policies that protect your health. Places and programs working together to "
+        },
+        {
+          "text": "inspire your best work and your best life.",
+          "highlight": true
+        }
       ],
       [
-        { "text": "This is WELL in action—a " },
-        { "text": "blueprint for everyone to thrive.", "highlight": true }
+        {
+          "text": "This is WELL in action—a "
+        },
+        {
+          "text": "blueprint for everyone to thrive.",
+          "highlight": true
+        }
       ]
     ]
   },
