@@ -78,9 +78,9 @@ function HeroSection() {
             variant="body-large"
             className="text-white max-w-[600px]"
             data-content-path="hero.body"
-          >
-            {hero.body}
-          </Text>
+            data-field-type="richtext"
+            dangerouslySetInnerHTML={{ __html: hero.body }}
+          />
         </div>
 
         <motion.div

@@ -161,9 +161,9 @@ function FeatureGridCard({
             className={cn("whitespace-pre-line", textColor)}
             style={{ maxWidth: feature.descriptionMaxWidth }}
             data-content-path={`${feature.path}.description`}
-          >
-            {feature.description}
-          </Text>
+            data-field-type="richtext"
+            dangerouslySetInnerHTML={{ __html: feature.description }}
+          />
         </div>
       </div>
     </Card>
@@ -181,9 +181,13 @@ function FeaturesGridMobile() {
           <Text as="h2" variant="heading-large" className="mb-8" data-content-path={`${feature.path}.title`}>
             {feature.title}
           </Text>
-          <Text as="p" variant="body-large" data-content-path={`${feature.path}.description`}>
-            {feature.description}
-          </Text>
+          <Text
+            as="p"
+            variant="body-large"
+            data-content-path={`${feature.path}.description`}
+            data-field-type="richtext"
+            dangerouslySetInnerHTML={{ __html: feature.description }}
+          />
         </Card>
       ))}
     </div>

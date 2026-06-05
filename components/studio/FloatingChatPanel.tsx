@@ -8,6 +8,7 @@ import {
   type FieldValue,
   type LinkValue,
 } from "@/lib/studio/field-types";
+import { RichTextEditor } from "./RichTextEditor";
 
 export type Selection = {
   path: string;
@@ -73,6 +74,15 @@ export function FloatingChatPanel({
           }}
           onClose={onClose}
         />
+      ) : selection.fieldType === "richtext" ? (
+        <RichEditor
+          initial={typeof selection.currentValue === "string" ? selection.currentValue : ""}
+          onApply={(v) => {
+            onApply(selection.path, v, "richtext");
+            onClose();
+          }}
+          onClose={onClose}
+        />
       ) : (
         <TextEditor
           initial={typeof selection.currentValue === "string" ? selection.currentValue : ""}
@@ -117,6 +127,26 @@ function TextEditor({
         className="w-full resize-y rounded-md border border-gray-200 p-2 text-sm text-gray-900 outline-none focus:border-cyan-500"
       />
       <Actions onApply={() => onApply(value)} onClose={onClose} hint="⌘↵ to apply · Esc to cancel" />
+    </>
+  );
+}
+
+function RichEditor({
+  initial,
+  onApply,
+  onClose,
+}: {
+  initial: string;
+  onApply: (value: string) => void;
+  onClose: () => void;
+}) {
+  const [value, setValue] = useState(initial);
+  useEffect(() => setValue(initial), [initial]);
+
+  return (
+    <>
+      <RichTextEditor initialHtml={initial} onChange={setValue} />
+      <Actions onApply={() => onApply(value)} onClose={onClose} hint="Bold / italic / link" />
     </>
   );
 }

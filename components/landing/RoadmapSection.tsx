@@ -77,9 +77,14 @@ function MilestoneCard({
           {milestone.title}
         </Text>
 
-        <Text as="p" variant="body-large" className="text-gray-300" data-content-path={path ? `${path}.description` : undefined}>
-          {milestone.description}
-        </Text>
+        <Text
+          as="p"
+          variant="body-large"
+          className="text-gray-300"
+          data-content-path={path ? `${path}.description` : undefined}
+          data-field-type="richtext"
+          dangerouslySetInnerHTML={{ __html: milestone.description }}
+        />
 
         {link.label && (
           <Link
