@@ -31,7 +31,7 @@ export default function StudioPage() {
   const [merged, setMerged] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewStatus, setPreviewStatus] = useState<
-    "pending" | "success" | "failure" | null
+    "pending" | "success" | "failure" | "unavailable" | null
   >(null);
 
   useEffect(() => {
@@ -84,20 +84,33 @@ export default function StudioPage() {
     }
     let cancelled = false;
     let tries = 0;
+    let errors = 0;
     setPreviewStatus("pending");
     const poll = async () => {
       tries += 1;
       try {
         const res = await fetch(`/api/studio/status?pr=${result.prNumber}`);
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (cancelled) return;
         if (res.ok && (data.state === "success" || data.state === "failure")) {
           setPreviewStatus(data.state);
           return; // terminal — stop polling
         }
-        setPreviewStatus("pending");
+        if (!res.ok) {
+          errors += 1;
+          if (errors >= 3) {
+            setPreviewStatus("unavailable"); // can't read status (e.g. token perms)
+            return;
+          }
+        } else {
+          setPreviewStatus("pending");
+        }
       } catch {
-        /* transient — keep polling */
+        errors += 1;
+        if (!cancelled && errors >= 3) {
+          setPreviewStatus("unavailable");
+          return;
+        }
       }
       if (!cancelled && tries < 40) setTimeout(poll, 5000);
     };
@@ -125,6 +138,21 @@ export default function StudioPage() {
   );
 
   const resetDrafts = () => {
+    const open = useDraftStore.getState().lastPublish;
+    const confirmed = window.confirm(
+      open
+        ? "Discard your unpublished edits and close the open preview (PR)?"
+        : "Discard your unpublished edits?"
+    );
+    if (!confirmed) return;
+    if (open) {
+      // Best-effort cleanup so resetting doesn't leave an orphan PR/branch.
+      void fetch("/api/studio/close", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ prNumber: open.prNumber }),
+      }).catch(() => {});
+    }
     clearDrafts(); // also clears the persisted publish result
     setSelection(null);
     setMerged(false);
@@ -220,7 +248,7 @@ export default function StudioPage() {
           ✓ Published to production. The live site is rebuilding now.
         </div>
       )}
-      {result && previewStatus !== "failure" && (
+      {result && previewStatus !== "failure" && previewStatus !== "unavailable" && (
         <div className="flex shrink-0 items-center justify-center gap-3 bg-amber-50 px-4 py-2 text-xs text-amber-900">
           {previewStatus === "success" ? (
             <>
@@ -260,6 +288,29 @@ export default function StudioPage() {
           >
             View logs on the PR ↗
           </a>
+        </div>
+      )}
+      {result && previewStatus === "unavailable" && (
+        <div className="flex shrink-0 items-center justify-center gap-3 bg-amber-50 px-4 py-2 text-xs text-amber-900">
+          <span>Couldn’t confirm the preview status — open the PR to verify it built.</span>
+          <a
+            href={result.previewUrl ?? result.prUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium underline"
+          >
+            {result.previewUrl ? "Open deploy preview ↗" : "View pull request ↗"}
+          </a>
+          <button
+            onClick={() => {
+              if (window.confirm("Couldn’t confirm the preview built. Publish to production anyway?"))
+                publishForReal();
+            }}
+            disabled={merging}
+            className="rounded-md bg-emerald-700 px-2.5 py-1 font-medium text-white hover:bg-emerald-800 disabled:opacity-40"
+          >
+            {merging ? "Publishing…" : "Publish anyway"}
+          </button>
         </div>
       )}
       {!error && !merged && !result && (

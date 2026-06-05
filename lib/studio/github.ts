@@ -101,12 +101,18 @@ export async function getPullStatus(prNumber: number): Promise<PullStatus> {
   const pr = await octokit.pulls.get({ owner, repo, pull_number: prNumber });
   const ref = pr.data.head.sha;
 
-  const [combined, checks] = await Promise.all([
+  // Resilient: either API may be inaccessible if the token lacks that scope.
+  const [combinedR, checksR] = await Promise.allSettled([
     octokit.repos.getCombinedStatusForRef({ owner, repo, ref }),
     octokit.checks.listForRef({ owner, repo, ref }),
   ]);
-  const statuses = combined.data.statuses ?? [];
-  const runs = checks.data.check_runs ?? [];
+  if (combinedR.status === "rejected" && checksR.status === "rejected") {
+    throw new Error(
+      "Preview status unavailable — the GitHub token needs 'Commit statuses: Read' and 'Checks: Read'."
+    );
+  }
+  const statuses = combinedR.status === "fulfilled" ? combinedR.value.data.statuses ?? [] : [];
+  const runs = checksR.status === "fulfilled" ? checksR.value.data.check_runs ?? [] : [];
 
   if (statuses.length === 0 && runs.length === 0) return "pending"; // not reported yet
 
@@ -123,6 +129,21 @@ export async function getPullStatus(prNumber: number): Promise<PullStatus> {
   if (pending) return "pending";
 
   return "success";
+}
+
+/** Close a PR and (best-effort) delete its studio branch — cleanup on Reset. */
+export async function closePullRequest(prNumber: number): Promise<void> {
+  const { octokit, owner, repo } = config();
+  const pr = await octokit.pulls.get({ owner, repo, pull_number: prNumber });
+  await octokit.pulls.update({ owner, repo, pull_number: prNumber, state: "closed" });
+  const branch = pr.data.head.ref;
+  if (branch.startsWith("studio/")) {
+    try {
+      await octokit.git.deleteRef({ owner, repo, ref: `heads/${branch}` });
+    } catch {
+      // Branch already gone / not deletable — ignore.
+    }
+  }
 }
 
 /** Squash-merge a PR (→ production deploy on merge to base). */
