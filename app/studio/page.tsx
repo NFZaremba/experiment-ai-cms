@@ -13,8 +13,6 @@ import type { FieldType, FieldValue } from "@/lib/studio/field-types";
 
 const PREVIEW_SRC = "/?edit=1";
 
-type PublishResult = { prNumber: number; prUrl: string; previewUrl: string | null };
-
 export default function StudioPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -24,10 +22,12 @@ export default function StudioPage() {
   const clearDrafts = useDraftStore((s) => s.clear);
   const setEdit = useDraftStore((s) => s.setEdit);
   const draftCount = useDraftStore((s) => Object.keys(s.edits).length);
+  // Persisted so the preview link + "Publish for real" survive a refresh.
+  const result = useDraftStore((s) => s.lastPublish);
+  const setLastPublish = useDraftStore((s) => s.setLastPublish);
 
   const [publishing, setPublishing] = useState(false);
   const [merging, setMerging] = useState(false);
-  const [result, setResult] = useState<PublishResult | null>(null);
   const [merged, setMerged] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,9 +89,8 @@ export default function StudioPage() {
   );
 
   const resetDrafts = () => {
-    clearDrafts();
+    clearDrafts(); // also clears the persisted publish result
     setSelection(null);
-    setResult(null);
     setMerged(false);
     setError(null);
     if (iframeRef.current) iframeRef.current.src = PREVIEW_SRC;
@@ -109,7 +108,7 @@ export default function StudioPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Publish failed");
-      setResult(data as PublishResult);
+      setLastPublish(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Publish failed");
     } finally {
@@ -130,8 +129,7 @@ export default function StudioPage() {
       const data = await res.json();
       if (!res.ok || !data.merged) throw new Error(data.error || "Merge failed");
       setMerged(true);
-      setResult(null);
-      clearDrafts();
+      clearDrafts(); // clears drafts + the persisted publish result
     } catch (e) {
       setError(e instanceof Error ? e.message : "Merge failed");
     } finally {
