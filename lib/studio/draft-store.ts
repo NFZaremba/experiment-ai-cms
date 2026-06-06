@@ -3,43 +3,65 @@ import { persist } from "zustand/middleware";
 import type { FieldValue } from "./field-types";
 
 /**
- * Draft edits for the Content Studio.
+ * Draft edits for the Content Studio, scoped PER PAGE.
  *
- * Holds a map of `data-content-path` → new string value for fields the editor
- * has changed but not yet published. Persisted to localStorage so a refresh
- * doesn't lose in-progress work. Because the shell and the preview iframe are
- * same-origin, both windows hydrate from the same persisted key (each keeps its
- * own in-memory instance; cross-window live updates go over postMessage).
+ * Holds, for each page slug, a map of `data-content-path` → new value for
+ * fields the editor changed but hasn't published, plus that page's open
+ * preview (PR). Persisted to localStorage so a refresh doesn't lose work and so
+ * switching pages doesn't discard the other page's drafts. Because the shell
+ * and the preview iframe are same-origin, both windows hydrate from the same
+ * key (each keeps its own in-memory instance; live updates go over postMessage).
  *
- * This is UI/draft state only — never server state. It is cleared on publish.
+ * This is UI/draft state only — never server state. A page's entry is cleared
+ * on publish-for-real / reset of that page.
  */
 
 export type DraftEdits = Record<string, FieldValue>;
 
-/** The open publish (PR) for the current drafts, persisted so the preview link
- *  and "Publish for real" survive a page refresh. */
-export type PublishResult = { prNumber: number; prUrl: string; previewUrl: string | null };
-
-type DraftState = {
-  edits: DraftEdits;
-  lastPublish: PublishResult | null;
-  setEdit: (path: string, value: FieldValue) => void;
-  setLastPublish: (result: PublishResult | null) => void;
-  clear: () => void;
+/** The open publish (PR) for a page's drafts, persisted so the preview link and
+ *  "Publish for real" survive a refresh / page switch. */
+export type PublishResult = {
+  prNumber: number;
+  prUrl: string;
+  previewUrl: string | null;
+  /** The commit SHA this preview is built from — poll status for THIS build. */
+  headSha?: string | null;
 };
 
-export const STUDIO_DRAFT_KEY = "studio-draft-v1";
+type PageDraft = { edits: DraftEdits; lastPublish: PublishResult | null };
+
+type DraftState = {
+  pages: Record<string, PageDraft>;
+  setEdit: (page: string, path: string, value: FieldValue) => void;
+  setLastPublish: (page: string, result: PublishResult | null) => void;
+  clearPage: (page: string) => void;
+};
+
+export const STUDIO_DRAFT_KEY = "studio-draft-v2";
+
+const emptyPage = (): PageDraft => ({ edits: {}, lastPublish: null });
 
 export const useDraftStore = create<DraftState>()(
   persist(
     (set) => ({
-      edits: {},
-      lastPublish: null,
-      // A new edit makes any open preview stale, so drop it.
-      setEdit: (path, value) =>
-        set((s) => ({ edits: { ...s.edits, [path]: value }, lastPublish: null })),
-      setLastPublish: (result) => set({ lastPublish: result }),
-      clear: () => set({ edits: {}, lastPublish: null }),
+      pages: {},
+      // A new edit makes that page's open preview stale, so drop it.
+      setEdit: (page, path, value) =>
+        set((s) => {
+          const prev = s.pages[page] ?? emptyPage();
+          return {
+            pages: {
+              ...s.pages,
+              [page]: { edits: { ...prev.edits, [path]: value }, lastPublish: null },
+            },
+          };
+        }),
+      setLastPublish: (page, result) =>
+        set((s) => {
+          const prev = s.pages[page] ?? emptyPage();
+          return { pages: { ...s.pages, [page]: { ...prev, lastPublish: result } } };
+        }),
+      clearPage: (page) => set((s) => ({ pages: { ...s.pages, [page]: emptyPage() } })),
     }),
     { name: STUDIO_DRAFT_KEY }
   )

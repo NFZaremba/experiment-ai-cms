@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useDraftStore } from "@/lib/studio/draft-store";
+import { pageSlugForPathname } from "@/lib/content/pages";
 import {
   isApplyMessage,
   isStudioMessage,
@@ -107,6 +108,10 @@ export function EditModeBridge({ active }: { active: boolean }) {
   useEffect(() => {
     if (!active) return;
 
+    // This iframe renders one page; identify it so edits land in the right
+    // page bucket (the shell tracks the same slug via its switcher).
+    const slug = pageSlugForPathname(window.location.pathname);
+
     let style = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
     if (!style) {
       style = document.createElement("style");
@@ -115,9 +120,9 @@ export function EditModeBridge({ active }: { active: boolean }) {
       document.head.appendChild(style);
     }
 
-    // Re-apply persisted draft edits to the DOM.
-    const { edits } = useDraftStore.getState();
-    for (const [path, value] of Object.entries(edits)) applyOverride(path, value);
+    // Re-apply this page's persisted draft edits to the DOM.
+    const pageDraft = useDraftStore.getState().pages[slug];
+    for (const [path, value] of Object.entries(pageDraft?.edits ?? {})) applyOverride(path, value);
 
     // Hover outline.
     let hovered: HTMLElement | null = null;
@@ -164,7 +169,7 @@ export function EditModeBridge({ active }: { active: boolean }) {
       if (!isStudioMessage(e.data) || !isApplyMessage(e.data)) return;
       const { path, newValue } = e.data;
       applyOverride(path, newValue);
-      setEdit(path, newValue);
+      setEdit(slug, path, newValue);
     };
 
     document.addEventListener("pointerover", onPointerOver);

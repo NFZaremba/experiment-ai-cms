@@ -88,3 +88,16 @@ export const landingSchema = z.object({
 
 export type Segment = z.infer<typeof segment>;
 export type LandingContent = z.infer<typeof landingSchema>;
+
+/**
+ * A second, deliberately minimal page — the multi-page test fixture. Same
+ * content-layer contract as the landing page (plain-text leaves), so it's ready
+ * to plug into the per-page publish model (see docs/multi-page-publish_checkpoint.md).
+ */
+export const page2Schema = z.object({
+  title: z.string(),
+  intro: z.string(),
+  sections: z.array(z.object({ heading: z.string(), body: z.string() })),
+});
+
+export type Page2Content = z.infer<typeof page2Schema>;

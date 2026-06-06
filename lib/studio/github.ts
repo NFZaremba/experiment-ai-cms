@@ -27,11 +27,58 @@ export function isGithubConfigured(): boolean {
   );
 }
 
+/** One stable branch per page → one shared preview per page. */
+function branchForPage(slug: string): string {
+  return `studio/${slug}`;
+}
+
+/** Netlify deploy-preview URL for a PR, or null when the site name isn't set. */
+export function previewUrlFor(prNumber: number): string | null {
+  const site = process.env.NETLIFY_SITE_NAME;
+  return site ? `https://deploy-preview-${prNumber}--${site}.netlify.app` : null;
+}
+
 export type PublishResult = {
   prNumber: number;
   prUrl: string;
   baseSha: string;
+  /** The commit SHA produced by this publish — used to poll the RIGHT build. */
+  headSha?: string;
 };
+
+/**
+ * Commit a ChangeSet's files onto an existing branch (create or update each).
+ * Returns the new head commit SHA so callers can poll the exact build instead
+ * of the PR's (eventually-consistent) head, which can lag a fresh push.
+ */
+async function commitFiles(branch: string, changeSet: ChangeSet): Promise<string | undefined> {
+  const { octokit, owner, repo } = config();
+  let headSha: string | undefined;
+  for (const file of changeSet.files) {
+    // updating an existing blob requires its current sha ON THIS BRANCH.
+    let sha: string | undefined;
+    try {
+      const existing = await octokit.repos.getContent({ owner, repo, path: file.path, ref: branch });
+      if (!Array.isArray(existing.data) && "sha" in existing.data) {
+        sha = existing.data.sha;
+      }
+    } catch {
+      // New file — no existing sha.
+    }
+
+    const res = await octokit.repos.createOrUpdateFileContents({
+      owner,
+      repo,
+      path: file.path,
+      branch,
+      message: changeSet.summary,
+      content: Buffer.from(file.newContents, "utf8").toString("base64"),
+      sha,
+    });
+    headSha = res.data.commit.sha ?? headSha;
+  }
+  return headSha;
+}
 
 /** Create a branch off base, commit the ChangeSet's files, open a PR. */
 export async function publishChangeSet(
@@ -50,33 +97,7 @@ export async function publishChangeSet(
     sha: baseSha,
   });
 
-  for (const file of changeSet.files) {
-    // The file's current blob sha on base is required to update it.
-    let sha: string | undefined;
-    try {
-      const existing = await octokit.repos.getContent({
-        owner,
-        repo,
-        path: file.path,
-        ref: base,
-      });
-      if (!Array.isArray(existing.data) && "sha" in existing.data) {
-        sha = existing.data.sha;
-      }
-    } catch {
-      // New file — no existing sha.
-    }
-
-    await octokit.repos.createOrUpdateFileContents({
-      owner,
-      repo,
-      path: file.path,
-      branch,
-      message: changeSet.summary,
-      content: Buffer.from(file.newContents, "utf8").toString("base64"),
-      sha,
-    });
-  }
+  const headSha = await commitFiles(branch, changeSet);
 
   const pr = await octokit.pulls.create({
     owner,
@@ -87,7 +108,105 @@ export async function publishChangeSet(
     base,
   });
 
-  return { prNumber: pr.data.number, prUrl: pr.data.html_url, baseSha };
+  return { prNumber: pr.data.number, prUrl: pr.data.html_url, baseSha, headSha };
+}
+
+export type OpenPreview = { prNumber: number; prUrl: string; branch: string; headSha: string };
+
+/**
+ * The authoritative open preview(s) for ONE page — GitHub is the source of
+ * truth, never the client. A page's preview is the open PR on its stable
+ * `studio/<slug>` branch. Newest first (normally 0 or 1).
+ */
+export async function findOpenStudioPRForPage(slug: string): Promise<OpenPreview[]> {
+  const { octokit, owner, repo, base } = config();
+  const res = await octokit.pulls.list({ owner, repo, state: "open", base, per_page: 100 });
+  const wanted = branchForPage(slug);
+  return res.data
+    .filter((pr) => pr.head.ref === wanted)
+    .map((pr) => ({
+      prNumber: pr.number,
+      prUrl: pr.html_url,
+      branch: pr.head.ref,
+      headSha: pr.head.sha,
+    }))
+    .sort((a, b) => b.prNumber - a.prNumber);
+}
+
+/** Read a file's UTF-8 contents at a git ref, or null if it's absent. */
+async function readFileOnRef(ref: string, path: string): Promise<string | null> {
+  const { octokit, owner, repo } = config();
+  try {
+    const res = await octokit.repos.getContent({ owner, repo, path, ref });
+    if (!Array.isArray(res.data) && "content" in res.data && typeof res.data.content === "string") {
+      return Buffer.from(res.data.content, "base64").toString("utf8");
+    }
+  } catch {
+    // Missing file / bad ref.
+  }
+  return null;
+}
+
+/** Structural JSON equality, so whitespace/formatting can't trip the no-op guard. */
+function sameJson(a: string, b: string): boolean {
+  try {
+    return JSON.stringify(JSON.parse(a)) === JSON.stringify(JSON.parse(b));
+  } catch {
+    return a === b;
+  }
+}
+
+export type PublishOutcome = {
+  prNumber: number;
+  prUrl: string;
+  reused: boolean; // advanced an existing preview vs. created a new one
+  noop: boolean; // nothing changed vs. the target — no commit made
+  headSha: string | null; // the commit this publish produced (null on no-op)
+};
+
+/**
+ * Publish ONE page, reconciled against GitHub truth, enforcing AT MOST ONE open
+ * preview per page:
+ *  - collapse any stray previews for this page (orphans / races) to the newest;
+ *  - skip if the content already matches the target (this page's open preview,
+ *    or base);
+ *  - otherwise advance this page's existing preview, or create its first one.
+ *
+ * Keyed by `slug` so each page gets its own `studio/<slug>` branch + preview —
+ * different pages never touch the same file.
+ */
+export async function publishOrUpdate(slug: string, changeSet: ChangeSet): Promise<PublishOutcome> {
+  const { base } = config();
+  const open = await findOpenStudioPRForPage(slug);
+
+  // Single-preview-per-page invariant: close any extras beyond the newest.
+  for (const extra of open.slice(1)) {
+    try {
+      await closePullRequest(extra.prNumber);
+    } catch {
+      // best-effort self-heal
+    }
+  }
+
+  const existing = open[0] ?? null;
+  const file = changeSet.files[0];
+  const compareRef = existing ? existing.branch : base;
+
+  const current = await readFileOnRef(compareRef, file.path);
+  if (current !== null && sameJson(current, file.newContents)) {
+    return existing
+      ? { prNumber: existing.prNumber, prUrl: existing.prUrl, reused: true, noop: true, headSha: existing.headSha }
+      : { prNumber: 0, prUrl: "", reused: false, noop: true, headSha: null };
+  }
+
+  if (existing) {
+    const headSha = await commitFiles(existing.branch, changeSet);
+    return { prNumber: existing.prNumber, prUrl: existing.prUrl, reused: true, noop: false, headSha: headSha ?? null };
+  }
+
+  const branch = branchForPage(slug);
+  const res = await publishChangeSet(branch, changeSet);
+  return { prNumber: res.prNumber, prUrl: res.prUrl, reused: false, noop: false, headSha: res.headSha ?? null };
 }
 
 export type PullStatus = "pending" | "success" | "failure";
@@ -96,10 +215,17 @@ export type PullStatus = "pending" | "success" | "failure";
  * Combined CI status for a PR's head commit (Netlify posts a deploy-preview
  * check/status here). Returns "pending" until something is reported.
  */
-export async function getPullStatus(prNumber: number): Promise<PullStatus> {
+export async function getPullStatus(prNumber: number, sha?: string): Promise<PullStatus> {
   const { octokit, owner, repo } = config();
-  const pr = await octokit.pulls.get({ owner, repo, pull_number: prNumber });
-  const ref = pr.data.head.sha;
+  // Prefer the caller-supplied commit SHA (the exact build just pushed). Falling
+  // back to pulls.get is convenient but eventually-consistent — right after a
+  // fresh commit it can return the PRIOR head, making a new build read as the
+  // old one's "success" and the poll terminate early on stale state.
+  let ref = sha;
+  if (!ref) {
+    const pr = await octokit.pulls.get({ owner, repo, pull_number: prNumber });
+    ref = pr.data.head.sha;
+  }
 
   // Resilient: either API may be inaccessible if the token lacks that scope.
   const [combinedR, checksR] = await Promise.allSettled([

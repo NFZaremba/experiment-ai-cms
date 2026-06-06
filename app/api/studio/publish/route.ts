@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { isStudioAuthed } from "@/lib/studio/auth";
 import { buildContentChangeSet } from "@/lib/studio/changeset";
-import { isGithubConfigured, publishChangeSet } from "@/lib/studio/github";
+import { isGithubConfigured, previewUrlFor, publishOrUpdate } from "@/lib/studio/github";
 import { clientIp, rateLimit } from "@/lib/studio/rate-limit";
+import { isPageSlug } from "@/lib/content/pages";
 import type { DraftEdits } from "@/lib/studio/draft-store";
 
 export const runtime = "nodejs";
@@ -25,7 +26,11 @@ export async function POST(req: Request) {
     );
   }
 
-  const body = (await req.json().catch(() => ({}))) as { edits?: DraftEdits };
+  const body = (await req.json().catch(() => ({}))) as { page?: unknown; edits?: DraftEdits };
+  if (!isPageSlug(body.page)) {
+    return NextResponse.json({ error: "Unknown page." }, { status: 400 });
+  }
+  const page = body.page;
   const edits = body.edits ?? {};
   if (Object.keys(edits).length === 0) {
     return NextResponse.json({ error: "No edits to publish." }, { status: 400 });
@@ -33,7 +38,7 @@ export async function POST(req: Request) {
 
   let changeSet;
   try {
-    changeSet = buildContentChangeSet(edits);
+    changeSet = buildContentChangeSet(page, edits);
   } catch (e) {
     return NextResponse.json(
       { error: "Edits failed validation.", detail: String(e) },
@@ -41,14 +46,26 @@ export async function POST(req: Request) {
     );
   }
 
-  const branch = `studio/edit-${Date.now()}`;
   try {
-    const { prNumber, prUrl } = await publishChangeSet(branch, changeSet);
-    const site = process.env.NETLIFY_SITE_NAME;
-    const previewUrl = site
-      ? `https://deploy-preview-${prNumber}--${site}.netlify.app`
-      : null;
-    return NextResponse.json({ prNumber, prUrl, previewUrl });
+    // Reconciled against GitHub: advances this page's single open preview,
+    // creates its first one, or no-ops when nothing changed — never a duplicate.
+    const outcome = await publishOrUpdate(page, changeSet);
+    if (outcome.noop) {
+      return NextResponse.json({
+        noop: true,
+        prNumber: outcome.prNumber || undefined,
+        prUrl: outcome.prUrl || undefined,
+        previewUrl: outcome.prNumber ? previewUrlFor(outcome.prNumber) : undefined,
+        headSha: outcome.headSha ?? undefined,
+      });
+    }
+    return NextResponse.json({
+      prNumber: outcome.prNumber,
+      prUrl: outcome.prUrl,
+      previewUrl: previewUrlFor(outcome.prNumber),
+      reused: outcome.reused,
+      headSha: outcome.headSha ?? undefined,
+    });
   } catch (e) {
     return NextResponse.json({ error: "Publish failed.", detail: String(e) }, { status: 500 });
   }

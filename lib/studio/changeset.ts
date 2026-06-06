@@ -1,7 +1,6 @@
-import landingJson from "@/lib/content/landing.json";
-import { landingSchema } from "@/lib/content/schema";
 import { setByPath } from "@/lib/content/get-set-path";
 import { isRichtextPath } from "@/lib/content/paths";
+import { PAGES, type PageSlug } from "@/lib/content/pages";
 import { sanitizeHtmlServer } from "./sanitize-server";
 import type { DraftEdits } from "./draft-store";
 
@@ -15,19 +14,19 @@ export type ChangeSet = {
   summary: string;
 };
 
-/** The single allowlisted file the editor may write in v1. */
-export const CONTENT_FILE_PATH = "lib/content/landing.json";
-
 /**
- * Apply draft edits to the current content document, re-validate against the
- * schema (throws on any invalid result — the write allowlist), and serialize.
+ * Apply draft edits to a page's content document, re-validate against that
+ * page's schema (throws on any invalid result — the write allowlist), and
+ * serialize. The `slug` resolves to the right file + schema via the page
+ * registry, so a page-2 edit commits to page2.json — never landing.json.
  *
  * Serializes the path-mutated document (not the Zod-parsed result) so key order
  * matches the original file → a minimal, readable diff. `setByPath` is immutable
- * and preserves key order, so the bundled `landingJson` is never mutated.
+ * and preserves key order, so the bundled content module is never mutated.
  */
-export function buildContentChangeSet(edits: DraftEdits): ChangeSet {
-  let doc: unknown = landingJson;
+export function buildContentChangeSet(slug: PageSlug, edits: DraftEdits): ChangeSet {
+  const page = PAGES[slug];
+  let doc: unknown = page.json;
   for (const [path, value] of Object.entries(edits)) {
     // Server-side defense: HTML-sanitize rich-text values regardless of how the
     // edit was submitted (the client editor sanitizes too, but can be bypassed).
@@ -37,11 +36,11 @@ export function buildContentChangeSet(edits: DraftEdits): ChangeSet {
   }
 
   // Validate — rejects any edit that produced an out-of-schema document.
-  landingSchema.parse(doc);
+  page.schema.parse(doc);
 
   const newContents = JSON.stringify(doc, null, 2) + "\n";
   const count = Object.keys(edits).length;
-  const summary = `content: update ${count} field${count === 1 ? "" : "s"} via Content Studio`;
+  const summary = `content(${slug}): update ${count} field${count === 1 ? "" : "s"} via Content Studio`;
 
-  return { files: [{ path: CONTENT_FILE_PATH, newContents }], summary };
+  return { files: [{ path: page.file, newContents }], summary };
 }

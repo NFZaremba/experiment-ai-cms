@@ -12,13 +12,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Publishing isn't configured." }, { status: 503 });
   }
 
-  const pr = Number(new URL(req.url).searchParams.get("pr"));
+  const params = new URL(req.url).searchParams;
+  const pr = Number(params.get("pr"));
+  const sha = params.get("sha") || undefined;
   if (!Number.isInteger(pr)) {
     return NextResponse.json({ error: "pr is required" }, { status: 400 });
   }
 
   try {
-    const state = await getPullStatus(pr);
+    const state = await getPullStatus(pr, sha);
     return NextResponse.json({ state });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

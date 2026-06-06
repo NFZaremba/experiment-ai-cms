@@ -10,8 +10,10 @@ import {
   type ApplyEditMessage,
 } from "@/lib/studio/messages";
 import type { FieldType, FieldValue } from "@/lib/studio/field-types";
+import { PAGE_LIST, type PageSlug } from "@/lib/content/pages";
 
-const PREVIEW_SRC = "/?edit=1";
+const editRouteFor = (slug: PageSlug) =>
+  `${PAGE_LIST.find((p) => p.slug === slug)?.route ?? "/"}?edit=1`;
 
 export default function StudioPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -19,20 +21,63 @@ export default function StudioPage() {
   const [iframeRect, setIframeRect] = useState<DOMRect | null>(null);
   const [ready, setReady] = useState(false);
 
-  const clearDrafts = useDraftStore((s) => s.clear);
+  // Which page the editor is currently editing. Drives the iframe + per-page drafts.
+  const [currentPage, setCurrentPage] = useState<PageSlug>("home");
+  const previewSrc = editRouteFor(currentPage);
+
+  const clearPage = useDraftStore((s) => s.clearPage);
   const setEdit = useDraftStore((s) => s.setEdit);
-  const draftCount = useDraftStore((s) => Object.keys(s.edits).length);
-  // Persisted so the preview link + "Publish for real" survive a refresh.
-  const result = useDraftStore((s) => s.lastPublish);
+  const draftCount = useDraftStore((s) => Object.keys(s.pages[currentPage]?.edits ?? {}).length);
+  // Persisted per page so the preview link + "Publish for real" survive a refresh.
+  const result = useDraftStore((s) => s.pages[currentPage]?.lastPublish ?? null);
   const setLastPublish = useDraftStore((s) => s.setLastPublish);
 
   const [publishing, setPublishing] = useState(false);
   const [merging, setMerging] = useState(false);
   const [merged, setMerged] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [previewStatus, setPreviewStatus] = useState<
     "pending" | "success" | "failure" | "unavailable" | null
   >(null);
+
+  // Reconcile the current page's open preview from GitHub truth on load and on
+  // every page switch: a fresh tab/browser discovers the existing preview
+  // instead of spawning a duplicate, and a stale local pointer (PR merged/closed
+  // elsewhere) gets cleared.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/studio/preview?page=${currentPage}`);
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (cancelled) return;
+        const store = useDraftStore.getState();
+        const hasDrafts = Object.keys(store.pages[currentPage]?.edits ?? {}).length > 0;
+        if (data.preview) {
+          // Only surface it when there are no newer unpublished drafts (those
+          // must be re-published to advance the preview first). Publish still
+          // reuses the existing PR server-side regardless of this banner.
+          if (!hasDrafts) store.setLastPublish(currentPage, data.preview);
+        } else if (store.pages[currentPage]?.lastPublish) {
+          store.setLastPublish(currentPage, null); // preview merged/closed elsewhere
+        }
+      } catch {
+        // offline / not configured — leave local state as-is
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPage]);
+
+  // Auto-dismiss the transient "nothing new to publish" note.
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 4000);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
@@ -89,7 +134,8 @@ export default function StudioPage() {
     const poll = async () => {
       tries += 1;
       try {
-        const res = await fetch(`/api/studio/status?pr=${result.prNumber}`);
+        const shaParam = result.headSha ? `&sha=${result.headSha}` : "";
+        const res = await fetch(`/api/studio/status?pr=${result.prNumber}${shaParam}`);
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
         if (res.ok && (data.state === "success" || data.state === "failure")) {
@@ -131,18 +177,29 @@ export default function StudioPage() {
       };
       iframeRef.current?.contentWindow?.postMessage(message, window.location.origin);
       // The shell is the source of truth for drafts (it publishes), so record
-      // here too — the iframe's bridge keeps its own copy for reload-survival.
-      setEdit(path, newValue);
+      // here too under the current page — the iframe's bridge keeps its own copy
+      // for reload-survival.
+      setEdit(currentPage, path, newValue);
     },
-    [setEdit]
+    [setEdit, currentPage]
   );
 
+  const switchPage = (slug: PageSlug) => {
+    if (slug === currentPage) return;
+    setSelection(null);
+    setMerged(false);
+    setError(null);
+    setNotice(null);
+    setReady(false); // the new page's bridge will re-announce "ready"
+    setCurrentPage(slug);
+  };
+
   const resetDrafts = () => {
-    const open = useDraftStore.getState().lastPublish;
+    const open = useDraftStore.getState().pages[currentPage]?.lastPublish ?? null;
     const confirmed = window.confirm(
       open
-        ? "Discard your unpublished edits and close the open preview (PR)?"
-        : "Discard your unpublished edits?"
+        ? "Discard your unpublished edits and close the open preview (PR) for this page?"
+        : "Discard your unpublished edits for this page?"
     );
     if (!confirmed) return;
     if (open) {
@@ -153,26 +210,44 @@ export default function StudioPage() {
         body: JSON.stringify({ prNumber: open.prNumber }),
       }).catch(() => {});
     }
-    clearDrafts(); // also clears the persisted publish result
+    clearPage(currentPage); // clears this page's drafts + publish result
     setSelection(null);
     setMerged(false);
     setError(null);
-    if (iframeRef.current) iframeRef.current.src = PREVIEW_SRC;
+    if (iframeRef.current) iframeRef.current.src = previewSrc;
   };
 
   const publish = async () => {
     setPublishing(true);
     setError(null);
+    setNotice(null);
     setMerged(false);
     try {
       const res = await fetch("/api/studio/publish", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ edits: useDraftStore.getState().edits }),
+        body: JSON.stringify({
+          page: currentPage,
+          edits: useDraftStore.getState().pages[currentPage]?.edits ?? {},
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Publish failed");
-      setLastPublish(data);
+      if (data.noop) {
+        // Nothing changed vs. what's already live / in the open preview — no new
+        // PR or preview was created. Keep showing the existing preview, if any.
+        setNotice("Nothing new to publish — your changes are already in the preview.");
+        if (data.prNumber) {
+          setLastPublish(currentPage, {
+            prNumber: data.prNumber,
+            prUrl: data.prUrl,
+            previewUrl: data.previewUrl ?? null,
+            headSha: data.headSha ?? null,
+          });
+        }
+        return;
+      }
+      setLastPublish(currentPage, data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Publish failed");
     } finally {
@@ -193,7 +268,7 @@ export default function StudioPage() {
       const data = await res.json();
       if (!res.ok || !data.merged) throw new Error(data.error || "Merge failed");
       setMerged(true);
-      clearDrafts(); // clears drafts + the persisted publish result
+      clearPage(currentPage); // clears this page's drafts + publish result
     } catch (e) {
       setError(e instanceof Error ? e.message : "Merge failed");
     } finally {
@@ -207,6 +282,21 @@ export default function StudioPage() {
       <header className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 py-2.5">
         <div className="flex items-center gap-3">
           <span className="text-sm font-semibold text-gray-900">Content Studio</span>
+          <label className="sr-only" htmlFor="studio-page-switcher">
+            Page to edit
+          </label>
+          <select
+            id="studio-page-switcher"
+            value={currentPage}
+            onChange={(e) => switchPage(e.target.value as PageSlug)}
+            className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-cyan-500"
+          >
+            {PAGE_LIST.map((p) => (
+              <option key={p.slug} value={p.slug}>
+                {p.label}
+              </option>
+            ))}
+          </select>
           <span
             className={`inline-flex items-center gap-1.5 text-xs ${
               ready ? "text-emerald-600" : "text-gray-400"
@@ -242,6 +332,11 @@ export default function StudioPage() {
       {/* Status banner */}
       {error && (
         <div className="shrink-0 bg-red-50 px-4 py-2 text-center text-xs text-red-700">{error}</div>
+      )}
+      {notice && (
+        <div className="shrink-0 bg-slate-100 px-4 py-2 text-center text-xs text-slate-600">
+          {notice}
+        </div>
       )}
       {merged && (
         <div className="shrink-0 bg-emerald-50 px-4 py-2 text-center text-xs text-emerald-800">
@@ -323,7 +418,7 @@ export default function StudioPage() {
       <div className="relative flex-1 overflow-hidden">
         <iframe
           ref={iframeRef}
-          src={PREVIEW_SRC}
+          src={previewSrc}
           title="Landing page preview"
           className="h-full w-full border-0 bg-white"
         />
