@@ -83,8 +83,11 @@ function FeedbackSection({ className, ref, ...props }: React.ComponentPropsWithR
       {/* Background circle image */}
       <div className="feedback-sphere absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none w-[1200px] mx-auto">
         <Image
-          src="/img/sphere.webp"
-          alt=""
+          src={feedback.image.src}
+          alt={feedback.image.alt}
+          data-content-path="feedback.image"
+          data-field-type="image"
+          data-src={feedback.image.src}
           width={1200}
           height={640}
           onLoad={() => setSphereLoaded(true)}

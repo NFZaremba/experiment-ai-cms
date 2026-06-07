@@ -22,6 +22,8 @@ export type SelectFieldMessage = {
   type: "select";
   path: string;
   rect: FieldRect;
+  /** The click point in the iframe's viewport coords — the panel anchors here. */
+  point: { x: number; y: number };
   currentValue: FieldValue;
   fieldType: FieldType;
 };

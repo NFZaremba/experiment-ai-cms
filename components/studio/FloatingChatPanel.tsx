@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { CldUploadWidget } from "next-cloudinary";
 import type { FieldRect } from "@/lib/studio/messages";
 import {
+  isImageValue,
   isLinkValue,
   type FieldType,
   type FieldValue,
+  type ImageValue,
   type LinkValue,
 } from "@/lib/studio/field-types";
 import { RichTextEditor } from "./RichTextEditor";
@@ -13,6 +16,7 @@ import { RichTextEditor } from "./RichTextEditor";
 export type Selection = {
   path: string;
   rect: FieldRect;
+  point: { x: number; y: number };
   fieldType: FieldType;
   currentValue: FieldValue;
 };
@@ -36,20 +40,42 @@ export function FloatingChatPanel({
   onApply: (path: string, value: FieldValue, fieldType: FieldType) => void;
   onClose: () => void;
 }) {
-  const offsetTop = (iframeRect?.top ?? 0) + selection.rect.top + selection.rect.height + 8;
-  const offsetLeft = (iframeRect?.left ?? 0) + selection.rect.left;
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [top, setTop] = useState(8);
+
+  // Anchor at the point the user clicked (offset into the shell by the iframe
+  // position), not the field's bounding box — feels direct, and avoids landing
+  // far from the cursor on large fields. Clamped to the viewport.
+  const clickX = (iframeRect?.left ?? 0) + selection.point.x;
   const left =
     typeof window !== "undefined"
-      ? Math.min(offsetLeft, window.innerWidth - PANEL_WIDTH - 16)
-      : offsetLeft;
+      ? Math.max(8, Math.min(clickX, window.innerWidth - PANEL_WIDTH - 16))
+      : clickX;
+
+  // Vertical: just below the cursor, but flip above it if the panel would
+  // overflow the viewport. Measured after render so it accounts for editor height.
+  useLayoutEffect(() => {
+    const vh = window.innerHeight;
+    const clickY = (iframeRect?.top ?? 0) + selection.point.y;
+    const h = panelRef.current?.offsetHeight ?? 240;
+    let t = clickY + 12;
+    if (t + h > vh - 8) {
+      const above = clickY - 12 - h;
+      t = above >= 8 ? above : Math.max(8, vh - h - 8);
+    }
+    setTop(t);
+  }, [iframeRect, selection.point.x, selection.point.y, selection.path]);
 
   return (
     <div
+      ref={panelRef}
       style={{
         position: "fixed",
-        top: Math.max(8, offsetTop),
-        left: Math.max(8, left),
+        top,
+        left,
         width: PANEL_WIDTH,
+        maxHeight: "calc(100vh - 16px)",
+        overflowY: "auto",
         zIndex: 2147483000,
       }}
       className="rounded-lg border border-gray-200 bg-white p-3 shadow-2xl"
@@ -79,6 +105,15 @@ export function FloatingChatPanel({
           initial={typeof selection.currentValue === "string" ? selection.currentValue : ""}
           onApply={(v) => {
             onApply(selection.path, v, "richtext");
+            onClose();
+          }}
+          onClose={onClose}
+        />
+      ) : selection.fieldType === "image" && isImageValue(selection.currentValue) ? (
+        <ImageEditor
+          initial={selection.currentValue}
+          onApply={(v) => {
+            onApply(selection.path, v, "image");
             onClose();
           }}
           onClose={onClose}
@@ -192,6 +227,102 @@ function LinkEditor({
         Open in new tab
       </label>
       <Actions onApply={() => onApply({ label, href, newTab })} onClose={onClose} />
+    </>
+  );
+}
+
+function ImageEditor({
+  initial,
+  onApply,
+  onClose,
+}: {
+  initial: ImageValue;
+  onApply: (value: ImageValue) => void;
+  onClose: () => void;
+}) {
+  const [src, setSrc] = useState(initial.src);
+  const [alt, setAlt] = useState(initial.alt);
+  const [widgetError, setWidgetError] = useState(false);
+  useEffect(() => {
+    setSrc(initial.src);
+    setAlt(initial.alt);
+  }, [initial.src, initial.alt]);
+
+  const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+  return (
+    <>
+      <div className="mb-2 flex h-28 items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-gray-50 p-2">
+        {/* Plain img: the source can be a local path or a remote Cloudinary URL,
+            and this thumbnail doesn't need next/image optimization. Fixed-height
+            box so the panel's measured height is stable before the img loads
+            (keeps the viewport-clamp placement accurate). */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={alt} className="max-h-full w-auto object-contain" />
+      </div>
+      {preset ? (
+        <CldUploadWidget
+          uploadPreset={preset}
+          onSuccess={(result) => {
+            const info = result?.info;
+            if (info && typeof info === "object" && "secure_url" in info) {
+              setSrc(String((info as { secure_url: string }).secure_url));
+            }
+          }}
+        >
+          {({ open, isLoading }) => (
+            <button
+              type="button"
+              // Gate on isLoading (next-cloudinary's own pattern). The try/catch is
+              // the real guard: if the widget couldn't be created (script blocked
+              // by an ad-blocker/network), open() throws synchronously inside
+              // next-cloudinary ("reading 'open'") — we swallow it and steer the
+              // user to the URL field instead of red-screening the editor.
+              onClick={() => {
+                try {
+                  open?.();
+                } catch {
+                  setWidgetError(true);
+                }
+              }}
+              disabled={isLoading}
+              className="mb-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoading ? "Loading uploader…" : "Upload image…"}
+            </button>
+          )}
+        </CldUploadWidget>
+      ) : (
+        <p className="mb-2 rounded-md bg-amber-50 px-2 py-1.5 text-[11px] leading-snug text-amber-800">
+          Set <code>NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME</code> +{" "}
+          <code>NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET</code> to enable uploads. You can still set an
+          image URL below.
+        </p>
+      )}
+      {widgetError && (
+        <p className="mb-2 rounded-md bg-amber-50 px-2 py-1.5 text-[11px] leading-snug text-amber-800">
+          The uploader couldn’t load — often an ad-blocker or privacy extension blocking
+          Cloudinary. Disable it for this site, or paste an image URL below.
+        </p>
+      )}
+      {/* Fallback that always works, even if the upload widget is blocked by the
+          browser/network: paste an image URL (a Cloudinary URL renders in prod;
+          a local /img path also works). Bound to `src` so the thumbnail updates live. */}
+      <label className="mb-1 block text-[11px] font-medium text-gray-500">…or paste an image URL</label>
+      <input
+        value={src}
+        onChange={(e) => setSrc(e.target.value)}
+        placeholder="https://res.cloudinary.com/…"
+        className="mb-2 w-full rounded-md border border-gray-200 p-2 text-sm text-gray-900 outline-none focus:border-cyan-500"
+      />
+      <label className="mb-1 block text-[11px] font-medium text-gray-500">Alt text</label>
+      <input
+        value={alt}
+        onChange={(e) => setAlt(e.target.value)}
+        placeholder="Describe the image"
+        className="mb-2 w-full rounded-md border border-gray-200 p-2 text-sm text-gray-900 outline-none focus:border-cyan-500"
+      />
+      <Actions onApply={() => onApply({ src, alt })} onClose={onClose} />
     </>
   );
 }

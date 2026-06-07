@@ -97,6 +97,7 @@ export default function StudioPage() {
         setSelection({
           path: e.data.path,
           rect: e.data.rect,
+          point: e.data.point,
           fieldType: e.data.fieldType,
           currentValue: e.data.currentValue,
         });

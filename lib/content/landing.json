@@ -11,6 +11,10 @@
     "commentPeriod": {
       "label": "",
       "date": ""
+    },
+    "image": {
+      "src": "/img/half-sphere.webp",
+      "alt": "WELL Standard Sphere"
     }
   },
   "intro": {
@@ -160,7 +164,11 @@
           "highlight": true
         }
       ]
-    ]
+    ],
+    "image": {
+      "src": "/img/shapes.webp",
+      "alt": ""
+    }
   },
   "roadmap": {
     "badge": "Roadmap",
@@ -229,7 +237,11 @@
     "title": "Tell us what you think",
     "body": "Your feedback will shape what's possible with the next version of WELL.",
     "ctaAuthed": "Provide feedback",
-    "ctaAnon": "Sign in to provide feedback"
+    "ctaAnon": "Sign in to provide feedback",
+    "image": {
+      "src": "/img/sphere.webp",
+      "alt": ""
+    }
   },
   "footer": {
     "copyright": "© 2026 International WELL Building Institute PBC. All rights reserved.",

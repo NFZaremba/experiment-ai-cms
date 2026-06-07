@@ -33,8 +33,11 @@ function HeroSection() {
         style={{ willChange: "transform, opacity", transformOrigin: "center bottom" }}
       >
         <Image
-          src="/img/half-sphere.webp"
-          alt="WELL Standard Sphere"
+          src={hero.image.src}
+          alt={hero.image.alt}
+          data-content-path="hero.image"
+          data-field-type="image"
+          data-src={hero.image.src}
           width={1595}
           height={830}
           sizes="(max-width: 768px) 100vw, 1595px"

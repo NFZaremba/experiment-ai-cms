@@ -190,8 +190,11 @@ function VisionSection({ className, ref, ...props }: React.ComponentPropsWithRef
             }}
           >
             <Image
-              src="/img/shapes.webp"
-              alt=""
+              src={vision.image.src}
+              alt={vision.image.alt}
+              data-content-path="vision.image"
+              data-field-type="image"
+              data-src={vision.image.src}
               fill
               sizes="(max-width: 768px) 350px, 600px"
               style={{ objectFit: "cover", objectPosition: "center" }}

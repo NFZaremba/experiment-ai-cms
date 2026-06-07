@@ -26,6 +26,12 @@ const link = z.object({
   newTab: z.boolean(),
 });
 
+/** An editable image: a URL source (local `/img/...` or Cloudinary CDN) + alt. */
+const imageField = z.object({
+  src: z.string(),
+  alt: z.string(),
+});
+
 const milestone = z.object({
   phase: z.string(),
   status: z.enum(["open", "coming-soon"]),
@@ -46,6 +52,7 @@ export const landingSchema = z.object({
       label: z.string(),
       date: z.string(),
     }),
+    image: imageField,
   }),
   intro: z.object({
     badge: z.string(),
@@ -66,6 +73,7 @@ export const landingSchema = z.object({
     tagline: z.string(),
     stickyStatements: z.array(z.string()),
     paragraphs: z.array(paragraph),
+    image: imageField,
   }),
   roadmap: z.object({
     badge: z.string(),
@@ -79,6 +87,7 @@ export const landingSchema = z.object({
     body: z.string(),
     ctaAuthed: z.string(),
     ctaAnon: z.string(),
+    image: imageField,
   }),
   footer: z.object({
     copyright: z.string(),

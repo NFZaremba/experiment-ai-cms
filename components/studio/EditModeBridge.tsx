@@ -36,6 +36,10 @@ const STYLE_ID = "studio-edit-mode-style";
 
 const EDIT_STYLES = `
   [data-content-path] { cursor: text; }
+  /* Make editable elements clickable even when they (or a parent) set
+     pointer-events: none — e.g. decorative hero/vision/feedback images. */
+  [data-content-path] { pointer-events: auto !important; }
+  [data-field-type="image"] { cursor: pointer; }
   [data-content-path].studio-hover {
     outline: 2px dashed rgba(22, 173, 207, 0.9);
     outline-offset: 3px;
@@ -63,7 +67,9 @@ function readValue(el: HTMLElement): FieldValue {
       };
     case "image":
       return {
-        src: el.getAttribute("src") ?? el.dataset.src ?? "",
+        // Prefer the canonical data-src: next/image rewrites `src` to a
+        // /_next/image proxy URL, which we never want to round-trip into content.
+        src: el.dataset.src ?? el.getAttribute("src") ?? "",
         alt: el.getAttribute("alt") ?? "",
       };
     case "richtext":
@@ -85,7 +91,11 @@ function writeValue(el: HTMLElement, value: FieldValue) {
     case "image":
       if (isImageValue(value) && el instanceof HTMLImageElement) {
         el.src = value.src;
+        el.dataset.src = value.src; // keep the canonical value in sync for re-reads
         el.alt = value.alt;
+        // next/image emits a `srcset`; with it present the browser ignores a bare
+        // `src` change, so the live preview wouldn't swap. Drop it.
+        el.removeAttribute("srcset");
       }
       break;
     case "richtext":
@@ -158,6 +168,7 @@ export function EditModeBridge({ active }: { active: boolean }) {
         type: "select",
         path,
         rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+        point: { x: e.clientX, y: e.clientY },
         currentValue: readValue(el),
         fieldType: fieldTypeOf(el),
       });
