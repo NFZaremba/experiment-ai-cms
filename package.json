@@ -10,6 +10,7 @@
     "generate:typography": "node scripts/generate-typography.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.102.0",
     "@gsap/react": "^2.1.2",
     "@octokit/rest": "^22.0.1",
     "@syscore/ui-library": "^1.27.3",

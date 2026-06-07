@@ -74,6 +74,9 @@ function readValue(el: HTMLElement): FieldValue {
       };
     case "richtext":
       return el.innerHTML;
+    case "layout":
+      // The chip carries the current variant value in data-current.
+      return el.dataset.current ?? "";
     default:
       return (el.textContent ?? "").trim();
   }
@@ -100,6 +103,12 @@ function writeValue(el: HTMLElement, value: FieldValue) {
       break;
     case "richtext":
       if (typeof value === "string") el.innerHTML = value;
+      break;
+    case "layout":
+      // No DOM mutation: the section reads the value reactively from the draft
+      // store (useLayoutValue) and re-renders the variant. We do refresh the
+      // chip's data-current so a subsequent re-read reports the new value.
+      if (typeof value === "string") el.dataset.current = value;
       break;
     default:
       if (typeof value === "string") el.textContent = value;

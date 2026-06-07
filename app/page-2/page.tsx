@@ -1,43 +1,37 @@
 "use client";
 
-import { useMemo } from "react";
-import { Text } from "@syscore/ui-library";
+import Image from "next/image";
+import { Text, cn } from "@syscore/ui-library";
 import { getPage2Content } from "@/lib/content";
 import { EditModeBridge } from "@/components/studio/EditModeBridge";
+import { LayoutChip } from "@/components/studio/LayoutChip";
+import { useIsEditMode, useLayoutValue } from "@/lib/studio/use-edit-mode";
 
 const page = getPage2Content();
+const PAGE = "page-2";
 
 /**
- * Minimal second page — the multi-page test fixture.
- *
- * Content-driven (own JSON + schema) and edit-mode-ready: under `?edit=1` it
- * mounts the same EditModeBridge as the landing page, with plain-text
- * `data-content-path` leaves scoped WITHIN this page's file (e.g. `title`,
- * `sections.0.heading`). The Studio shell doesn't iframe this route yet —
- * wiring the page switcher + per-page publish is the next phase
- * (docs/multi-page-publish_checkpoint.md). No GSAP/Lenis here; it's plain copy.
+ * Minimal second page — the multi-page test fixture AND the demo surface for
+ * constrained AI layout edits. The `feature` (image+text) and `cards` blocks
+ * read their layout from a constrained vocabulary (see lib/content/layout-vocab.ts);
+ * in edit mode a "✦ Layout" chip opens the panel's controls + AI box. Variants
+ * re-render live via the draft store (useLayoutValue) — no reload.
  */
 export default function Page2() {
-  const isEdit = useMemo(
-    () =>
-      typeof window !== "undefined" &&
-      new URLSearchParams(window.location.search).get("edit") === "1",
-    []
-  );
+  const isEdit = useIsEditMode();
+
+  // Layout values — live from the draft store in edit mode, else static content.
+  const imagePosition = useLayoutValue(PAGE, "feature.imagePosition", page.feature.imagePosition);
+  const cardsLayout = useLayoutValue(PAGE, "cards.layout", page.cards.layout);
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-24">
+    <main className="mx-auto max-w-3xl px-6 py-24">
       <EditModeBridge active={isEdit} />
 
       <Text as="h1" variant="heading-xlarge" data-content-path="title">
         {page.title}
       </Text>
-      <Text
-        as="p"
-        variant="body-large"
-        className="mt-4 text-gray-600"
-        data-content-path="intro"
-      >
+      <Text as="p" variant="body-large" className="mt-4 text-gray-600" data-content-path="intro">
         {page.intro}
       </Text>
 
@@ -58,6 +52,84 @@ export default function Page2() {
           </section>
         ))}
       </div>
+
+      {/* Image + text block — sides swap on `imagePosition`. */}
+      <section className="relative mt-20">
+        <LayoutChip path="feature.imagePosition" value={imagePosition} label="Image position" />
+        <div
+          className={cn(
+            "flex items-center gap-8",
+            imagePosition === "stacked" ? "flex-col" : "flex-col md:flex-row",
+            imagePosition === "left" && "md:flex-row-reverse"
+          )}
+        >
+          <div className="flex-1">
+            <Text as="h2" variant="heading-large" data-content-path="feature.heading">
+              {page.feature.heading}
+            </Text>
+            <Text
+              as="p"
+              variant="body-large"
+              className="mt-3 text-gray-600"
+              data-content-path="feature.body"
+            >
+              {page.feature.body}
+            </Text>
+          </div>
+          <div className="relative aspect-[4/3] w-full flex-1 overflow-hidden rounded-lg bg-gray-100">
+            <Image
+              src={page.feature.image.src}
+              alt={page.feature.image.alt}
+              data-content-path="feature.image"
+              data-field-type="image"
+              data-src={page.feature.image.src}
+              fill
+              sizes="(max-width: 768px) 100vw, 384px"
+              className="object-cover"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Card collection — arrangement changes on `layout`. */}
+      <section className="relative mt-20">
+        <LayoutChip path="cards.layout" value={cardsLayout} label="Layout" />
+        <div
+          className={cn(
+            cardsLayout === "grid" && "grid grid-cols-1 gap-4 sm:grid-cols-3",
+            cardsLayout === "cards" && "grid grid-cols-1 gap-6 sm:grid-cols-2",
+            cardsLayout === "rows" && "flex flex-col gap-3"
+          )}
+        >
+          {page.cards.items.map((c, i) => (
+            <div
+              key={i}
+              className={cn(
+                "rounded-lg border border-gray-200 p-5",
+                cardsLayout === "cards" && "shadow-md",
+                cardsLayout === "rows" && "flex items-baseline gap-4"
+              )}
+            >
+              <Text
+                as="h3"
+                variant="body-large"
+                className={cn("font-semibold", cardsLayout === "rows" && "min-w-32 shrink-0")}
+                data-content-path={`cards.items.${i}.title`}
+              >
+                {c.title}
+              </Text>
+              <Text
+                as="p"
+                variant="body-small"
+                className="mt-1 text-gray-600"
+                data-content-path={`cards.items.${i}.body`}
+              >
+                {c.body}
+              </Text>
+            </div>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }

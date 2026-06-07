@@ -9,9 +9,10 @@
  *  - richtext → sanitized HTML string (innerHTML)   [P7]
  *  - link     → { label, href, newTab }
  *  - image    → { src, alt }                          [P8]
+ *  - layout   → a constrained enum string (a layout variant)  [AI layout]
  */
 
-export type FieldType = "text" | "richtext" | "link" | "image";
+export type FieldType = "text" | "richtext" | "link" | "image" | "layout";
 
 export type LinkValue = { label: string; href: string; newTab: boolean };
 export type ImageValue = { src: string; alt: string };

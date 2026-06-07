@@ -418,6 +418,9 @@ export default function StudioPage() {
       {/* Preview iframe */}
       <div className="relative flex-1 overflow-hidden">
         <iframe
+          // key on the page slug: remount a fresh iframe on page switch so it
+          // reliably navigates (changing only `src` doesn't always re-navigate).
+          key={currentPage}
           ref={iframeRef}
           src={previewSrc}
           title="Landing page preview"
@@ -429,6 +432,7 @@ export default function StudioPage() {
         <FloatingChatPanel
           selection={selection}
           iframeRect={iframeRect}
+          page={currentPage}
           onApply={applyEdit}
           onClose={() => setSelection(null)}
         />

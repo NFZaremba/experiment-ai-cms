@@ -11,6 +11,7 @@ import {
   type ImageValue,
   type LinkValue,
 } from "@/lib/studio/field-types";
+import { layoutFieldFor } from "@/lib/content/layout-vocab";
 import { RichTextEditor } from "./RichTextEditor";
 
 export type Selection = {
@@ -32,11 +33,13 @@ const PANEL_WIDTH = 340;
 export function FloatingChatPanel({
   selection,
   iframeRect,
+  page,
   onApply,
   onClose,
 }: {
   selection: Selection;
   iframeRect: DOMRect | null;
+  page: string;
   onApply: (path: string, value: FieldValue, fieldType: FieldType) => void;
   onClose: () => void;
 }) {
@@ -114,6 +117,17 @@ export function FloatingChatPanel({
           initial={selection.currentValue}
           onApply={(v) => {
             onApply(selection.path, v, "image");
+            onClose();
+          }}
+          onClose={onClose}
+        />
+      ) : selection.fieldType === "layout" && typeof selection.currentValue === "string" ? (
+        <SelectEditor
+          path={selection.path}
+          page={page}
+          initial={selection.currentValue}
+          onApply={(v) => {
+            onApply(selection.path, v, "layout");
             onClose();
           }}
           onClose={onClose}
@@ -323,6 +337,97 @@ function ImageEditor({
         className="mb-2 w-full rounded-md border border-gray-200 p-2 text-sm text-gray-900 outline-none focus:border-cyan-500"
       />
       <Actions onApply={() => onApply({ src, alt })} onClose={onClose} />
+    </>
+  );
+}
+
+function SelectEditor({
+  path,
+  page,
+  initial,
+  onApply,
+  onClose,
+}: {
+  path: string;
+  page: string;
+  initial: string;
+  onApply: (value: string) => void;
+  onClose: () => void;
+}) {
+  const field = layoutFieldFor(path);
+  const [value, setValue] = useState(initial);
+  const [instruction, setInstruction] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  useEffect(() => setValue(initial), [initial]);
+
+  if (!field) return null;
+
+  const askAi = async () => {
+    if (!instruction.trim()) return;
+    setAiBusy(true);
+    setAiError(null);
+    try {
+      const res = await fetch("/api/studio/ai-layout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ page, path, instruction, currentValue: value }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "AI request failed");
+      // The server only ever returns a value from this field's allowlist.
+      if (typeof data.value === "string") setValue(data.value);
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "AI request failed");
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <label className="mb-1 block text-[11px] font-medium text-gray-500">{field.label}</label>
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {field.options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => setValue(o.value)}
+            className={`rounded-md border px-2.5 py-1 text-xs ${
+              value === o.value
+                ? "border-cyan-600 bg-cyan-50 font-medium text-cyan-800"
+                : "border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Optional AI shortcut — fills the SAME control, never exceeds the allowlist. */}
+      <label className="mb-1 block text-[11px] font-medium text-gray-500">Ask AI</label>
+      <div className="mb-1 flex gap-1.5">
+        <input
+          value={instruction}
+          onChange={(e) => setInstruction(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") askAi();
+          }}
+          placeholder="e.g. put the image on the left"
+          className="min-w-0 flex-1 rounded-md border border-gray-200 p-2 text-sm text-gray-900 outline-none focus:border-cyan-500"
+        />
+        <button
+          type="button"
+          onClick={askAi}
+          disabled={aiBusy || !instruction.trim()}
+          className="shrink-0 rounded-md bg-cyan-700 px-2.5 text-sm font-medium text-white hover:bg-cyan-800 disabled:opacity-50"
+        >
+          {aiBusy ? "…" : "✦"}
+        </button>
+      </div>
+      {aiError && <p className="mb-1 text-[11px] text-red-600">{aiError}</p>}
+
+      <Actions onApply={() => onApply(value)} onClose={onClose} hint="AI fills the options above" />
     </>
   );
 }

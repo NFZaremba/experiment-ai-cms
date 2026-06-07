@@ -14,5 +14,31 @@
       "heading": "Always improving",
       "body": "The standard evolves with the evidence — and with feedback from the people who use it every day."
     }
-  ]
+  ],
+  "feature": {
+    "heading": "Health, by design",
+    "body": "WELL turns the latest research into practical strategies you can apply across spaces, policies, and programs — so every decision compounds into a healthier place to work and live.",
+    "image": {
+      "src": "/img/shapes.webp",
+      "alt": ""
+    },
+    "imagePosition": "right"
+  },
+  "cards": {
+    "layout": "grid",
+    "items": [
+      {
+        "title": "Spaces",
+        "body": "Design environments that support focus, comfort, and recovery."
+      },
+      {
+        "title": "Policies",
+        "body": "Codify healthy practices so they outlast any single project."
+      },
+      {
+        "title": "Programs",
+        "body": "Engage people with experiences that make well-being a habit."
+      }
+    ]
+  }
 }

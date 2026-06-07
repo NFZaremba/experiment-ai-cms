@@ -107,6 +107,19 @@ export const page2Schema = z.object({
   title: z.string(),
   intro: z.string(),
   sections: z.array(z.object({ heading: z.string(), body: z.string() })),
+  // Demo surfaces for AI layout edits (mirror LAYOUT_FIELDS in layout-vocab.ts):
+  // a two-column image+text block whose sides swap on `imagePosition`...
+  feature: z.object({
+    heading: z.string(),
+    body: z.string(),
+    image: imageField,
+    imagePosition: z.enum(["left", "right", "stacked"]).default("right"),
+  }),
+  // ...and a card collection whose arrangement changes on `layout`.
+  cards: z.object({
+    layout: z.enum(["grid", "cards", "rows"]).default("grid"),
+    items: z.array(z.object({ title: z.string(), body: z.string() })),
+  }),
 });
 
 export type Page2Content = z.infer<typeof page2Schema>;
