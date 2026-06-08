@@ -123,3 +123,56 @@ export const page2Schema = z.object({
 });
 
 export type Page2Content = z.infer<typeof page2Schema>;
+
+/**
+ * The "About Us / People-First Places" page — a clean, animation-free copy of a
+ * real marketing page, built as a rich playground for constrained AI layout
+ * edits. Every section carries a `z.enum(...).default(...)` layout field whose
+ * options mirror LAYOUT_FIELDS in layout-vocab.ts; the rest are plain-text /
+ * image leaves so the whole document stays data (never executable code).
+ */
+export const aboutSchema = z.object({
+  hero: z.object({
+    eyebrow: z.string(),
+    title: z.string(),
+    subtitle: z.string(),
+    textAlign: z.enum(["center", "left"]).default("center"),
+  }),
+  intro: z.object({
+    paragraphs: z.array(z.string()),
+    columns: z.enum(["one", "two"]).default("one"),
+  }),
+  solutions: z.object({
+    heading: z.string(),
+    columns: z.enum(["four", "three", "two"]).default("four"),
+    items: z.array(
+      z.object({ icon: z.string(), title: z.string(), body: z.string() })
+    ),
+  }),
+  report: z.object({
+    tag: z.string(),
+    heading: z.string(),
+    body: z.string(),
+    cta: z.string(),
+    image: imageField,
+    imagePosition: z.enum(["left", "right", "stacked"]).default("left"),
+  }),
+  sum: z.object({
+    eyebrow: z.string(),
+    heading: z.string(),
+    body: z.string(),
+    textAlign: z.enum(["left", "center"]).default("left"),
+  }),
+  team: z.object({
+    heading: z.string(),
+    cta: z.string(),
+    columns: z.enum(["four", "three", "two"]).default("four"),
+    members: z.array(z.object({ name: z.string(), role: z.string() })),
+  }),
+  stats: z.object({
+    layout: z.enum(["row", "grid"]).default("row"),
+    items: z.array(z.object({ value: z.string(), label: z.string() })),
+  }),
+});
+
+export type AboutContent = z.infer<typeof aboutSchema>;

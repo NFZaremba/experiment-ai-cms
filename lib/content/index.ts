@@ -1,6 +1,14 @@
 import landingJson from "./landing.json";
 import page2Json from "./page2.json";
-import { landingSchema, page2Schema, type LandingContent, type Page2Content } from "./schema";
+import aboutJson from "./about.json";
+import {
+  landingSchema,
+  page2Schema,
+  aboutSchema,
+  type LandingContent,
+  type Page2Content,
+  type AboutContent,
+} from "./schema";
 
 /**
  * Single import surface for page content.
@@ -32,8 +40,18 @@ export function getPage2Content(): Page2Content {
   return cachedPage2;
 }
 
-export { landingSchema, page2Schema } from "./schema";
-export type { LandingContent, Page2Content, Segment } from "./schema";
+let cachedAbout: AboutContent | null = null;
+
+/** The "About Us / People-First Places" page — the AI-layout playground. */
+export function getAboutContent(): AboutContent {
+  if (cachedAbout === null) {
+    cachedAbout = aboutSchema.parse(aboutJson);
+  }
+  return cachedAbout;
+}
+
+export { landingSchema, page2Schema, aboutSchema } from "./schema";
+export type { LandingContent, Page2Content, AboutContent, Segment } from "./schema";
 export { getByPath, setByPath } from "./get-set-path";
 export {
   collectEditablePaths,

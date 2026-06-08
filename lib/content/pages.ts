@@ -1,7 +1,8 @@
 import { z } from "zod";
 import landingJson from "./landing.json";
 import page2Json from "./page2.json";
-import { landingSchema, page2Schema } from "./schema";
+import aboutJson from "./about.json";
+import { landingSchema, page2Schema, aboutSchema } from "./schema";
 
 /**
  * Page registry — the single place that maps an editable page to its content
@@ -11,7 +12,7 @@ import { landingSchema, page2Schema } from "./schema";
  * landing.json. See docs/multi-page-publish_checkpoint.md.
  */
 
-export type PageSlug = "home" | "page-2";
+export type PageSlug = "home" | "page-2" | "about";
 
 export type PageDef = {
   slug: PageSlug;
@@ -42,6 +43,14 @@ export const PAGES: Record<PageSlug, PageDef> = {
     file: "lib/content/page2.json",
     json: page2Json,
     schema: page2Schema,
+  },
+  about: {
+    slug: "about",
+    label: "About Us",
+    route: "/about",
+    file: "lib/content/about.json",
+    json: aboutJson,
+    schema: aboutSchema,
   },
 };
 

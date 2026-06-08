@@ -14,6 +14,12 @@
  *
  * v1 demo surface is the page-2 fixture (zero production risk); the registry +
  * the variant pattern extend to real landing sections section-by-section.
+ *
+ * LIMITATION: fields are keyed by `path` GLOBALLY, not by (page, path). Two pages
+ * therefore cannot share a layout path with different options. Today this is safe
+ * because every page uses unique section keys (page-2: feature/cards; about:
+ * hero/intro/solutions/report/sum/team/stats). If pages ever need the same path
+ * with different options, scope this registry — and the ai-layout route — by page.
  */
 
 export type LayoutOption = { value: string; label: string };
@@ -51,6 +57,81 @@ export const LAYOUT_FIELDS: readonly LayoutField[] = [
       { value: "rows", label: "Rows" },
     ],
     default: "grid",
+  },
+
+  // --- About Us page (/about) ---
+  {
+    path: "hero.textAlign",
+    section: "hero",
+    label: "Heading alignment",
+    options: [
+      { value: "center", label: "Centered" },
+      { value: "left", label: "Left" },
+    ],
+    default: "center",
+  },
+  {
+    path: "intro.columns",
+    section: "intro",
+    label: "Text columns",
+    options: [
+      { value: "one", label: "Single column" },
+      { value: "two", label: "Two columns" },
+    ],
+    default: "one",
+  },
+  {
+    path: "solutions.columns",
+    section: "solutions",
+    label: "Columns",
+    options: [
+      { value: "four", label: "Four across" },
+      { value: "three", label: "Three across" },
+      { value: "two", label: "Two across" },
+    ],
+    default: "four",
+  },
+  {
+    path: "report.imagePosition",
+    section: "report",
+    label: "Image position",
+    options: [
+      { value: "left", label: "Image left" },
+      { value: "right", label: "Image right" },
+      { value: "stacked", label: "Stacked" },
+    ],
+    default: "left",
+  },
+  {
+    path: "sum.textAlign",
+    section: "sum",
+    label: "Text alignment",
+    options: [
+      { value: "left", label: "Left" },
+      { value: "center", label: "Centered" },
+    ],
+    default: "left",
+  },
+  {
+    path: "team.columns",
+    section: "team",
+    label: "Columns",
+    options: [
+      { value: "four", label: "Four across" },
+      { value: "three", label: "Three across" },
+      { value: "two", label: "Two across" },
+    ],
+    default: "four",
+  },
+  {
+    path: "stats.layout",
+    section: "stats",
+    label: "Layout",
+    options: [
+      { value: "row", label: "Single row" },
+      { value: "grid", label: "Grid" },
+    ],
+    default: "row",
   },
 ] as const;
 

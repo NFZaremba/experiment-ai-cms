@@ -1,0 +1,83 @@
+{
+  "hero": {
+    "eyebrow": "About us",
+    "title": "People-First Places",
+    "subtitle": "We are the International WELL Building Institute (IWBI) and we know that the spaces around us can make everyone, everywhere, healthier, happier and more productive.",
+    "textAlign": "center"
+  },
+  "intro": {
+    "columns": "one",
+    "paragraphs": [
+      "We're leading a global movement to transform health and well-being with our people-first approach to buildings, organizations and communities. We do this using our WELL Building Standard (WELL), a roadmap for creating and certifying spaces that advance human health and well-being.",
+      "Developed over 10 years and backed by the latest scientific research, WELL sets pathways for accomplishing health-first factors that help every one of us to do our best work and be our best selves by supporting our physical and mental health across 10 core concepts.",
+      "Rigorous performance standards for design interventions, operational protocols and company-wide practices are verified by a third party. WELL works at any scale, from a single interior space to an entire organization."
+    ]
+  },
+  "solutions": {
+    "heading": "WELL offers solutions for:",
+    "columns": "four",
+    "items": [
+      {
+        "icon": "magnet",
+        "title": "Attracting top talent",
+        "body": "Attracting top talent, raising productivity, cultivating long-term resilience and improving business performance."
+      },
+      {
+        "icon": "percent",
+        "title": "Making the business case",
+        "body": "Making the business case for strategic investments in health and well-being."
+      },
+      {
+        "icon": "trending-up",
+        "title": "Becoming more knowledgeable",
+        "body": "Becoming more knowledgeable about how we can use our places and spaces to make us safer and healthier."
+      },
+      {
+        "icon": "graduation-cap",
+        "title": "Adding credentials",
+        "body": "Adding important professional credentials for career advancement."
+      }
+    ]
+  },
+  "report": {
+    "tag": "Annual report",
+    "heading": "Delivering on People-first Places: Introducing IWBI's 2023 Annual Report",
+    "body": "Explore the significant progress IWBI and its dedicated community made in advancing healthy buildings and organizations, including details on the global impact and continued momentum of WELL.",
+    "cta": "Learn more",
+    "image": { "src": "/img/shapes.webp", "alt": "" },
+    "imagePosition": "left"
+  },
+  "sum": {
+    "eyebrow": "We are well",
+    "heading": "We are more than the sum of our parts.",
+    "body": "Each of us defines WELL within the context of our own professional and personal lives, working together to advance health and well-being for all. We are a fiercely passionate team: we problem solve, innovate and challenge the status quo to build a healthier world.",
+    "textAlign": "left"
+  },
+  "team": {
+    "heading": "Meet the leadership team",
+    "cta": "Meet the rest of the team",
+    "columns": "four",
+    "members": [
+      { "name": "Rachel Hodgdon", "role": "President & CEO, IWBI" },
+      { "name": "Prateek Khanna", "role": "COO" },
+      { "name": "Judith Webb", "role": "Chief of Staff" },
+      { "name": "Jessica Cooper", "role": "Chief Product Officer" },
+      { "name": "Jason Hartke, Ph.D.", "role": "Executive Vice President, External Affairs" },
+      { "name": "Xue Ya", "role": "President of IWBI Asia" },
+      { "name": "Lindsay Jacobs", "role": "Senior Vice President, Head of Sales and Marketing" },
+      { "name": "Jodie Pimentel", "role": "Chief Counsel, IWBI" },
+      { "name": "Paul Scialla", "role": "Founder" },
+      { "name": "Rick Fedrizzi", "role": "Executive Chairman" },
+      { "name": "Kimberly Lewis Inkumsah", "role": "Executive Vice President, Equity, Engagement, and Events" }
+    ]
+  },
+  "stats": {
+    "layout": "row",
+    "items": [
+      { "value": "Most Innovative Companies", "label": "+ World Changing Ideas" },
+      { "value": "29,348 people", "label": "in 136 countries" },
+      { "value": "100,000+", "label": "commercial & residential projects participate in WELL" },
+      { "value": "6.39 billion sq ft", "label": "across 131 countries" }
+    ]
+  }
+}
