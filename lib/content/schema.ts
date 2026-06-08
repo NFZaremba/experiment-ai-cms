@@ -146,7 +146,9 @@ export const aboutSchema = z.object({
     heading: z.string(),
     columns: z.enum(["four", "three", "two"]).default("four"),
     items: z.array(
-      z.object({ id: z.string(), icon: z.string(), title: z.string(), body: z.string() })
+      // id must be non-numeric (digit-only segments are positional indexes in
+      // get-set-path, so a numeric id would be unreachable for edits/reorder)
+      z.object({ id: z.string().regex(/^[a-z][a-z0-9-]*$/), icon: z.string(), title: z.string(), body: z.string() })
     ),
   }),
   report: z.object({
@@ -167,7 +169,7 @@ export const aboutSchema = z.object({
     heading: z.string(),
     cta: z.string(),
     columns: z.enum(["four", "three", "two"]).default("four"),
-    members: z.array(z.object({ id: z.string(), name: z.string(), role: z.string() })),
+    members: z.array(z.object({ id: z.string().regex(/^[a-z][a-z0-9-]*$/), name: z.string(), role: z.string() })),
   }),
   stats: z.object({
     layout: z.enum(["row", "grid"]).default("row"),

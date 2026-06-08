@@ -37,6 +37,13 @@ export function buildContentChangeSet(slug: PageSlug, edits: DraftEdits): Change
       if (!Array.isArray(arr)) {
         throw new Error(`Reorder target is not an array: ${path}`);
       }
+      // Only id-addressable collections are reorderable. Requiring string ids
+      // makes a misrouted array edit (e.g. on a string[] or id-less array) fail
+      // loudly here instead of silently no-op'ing. reorderById then guarantees a
+      // true permutation, so the publish can't inject/duplicate/drop content.
+      if (!arr.every((it) => it != null && typeof (it as { id?: unknown }).id === "string")) {
+        throw new Error(`Reorder target items lack string ids: ${path}`);
+      }
       doc = setByPath(doc, path, reorderById(arr as { id: string }[], value));
       continue;
     }
