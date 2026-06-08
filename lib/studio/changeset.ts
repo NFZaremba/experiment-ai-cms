@@ -1,7 +1,9 @@
-import { setByPath } from "@/lib/content/get-set-path";
+import { getByPath, setByPath } from "@/lib/content/get-set-path";
 import { isRichtextPath } from "@/lib/content/paths";
 import { PAGES, type PageSlug } from "@/lib/content/pages";
 import { sanitizeHtmlServer } from "./sanitize-server";
+import { isOrderValue } from "./field-types";
+import { reorderById } from "./order";
 import type { DraftEdits } from "./draft-store";
 
 /**
@@ -28,6 +30,17 @@ export function buildContentChangeSet(slug: PageSlug, edits: DraftEdits): Change
   const page = PAGES[slug];
   let doc: unknown = page.json;
   for (const [path, value] of Object.entries(edits)) {
+    // Reorder: value is an id list → permute the array at `path` (id-keyed, so
+    // it composes with leaf edits regardless of application order).
+    if (isOrderValue(value)) {
+      const arr = getByPath(doc, path);
+      if (!Array.isArray(arr)) {
+        throw new Error(`Reorder target is not an array: ${path}`);
+      }
+      doc = setByPath(doc, path, reorderById(arr as { id: string }[], value));
+      continue;
+    }
+
     // Server-side defense: HTML-sanitize rich-text values regardless of how the
     // edit was submitted (the client editor sanitizes too, but can be bypassed).
     const safe =
