@@ -1,10 +1,15 @@
-# Multi-page publish — PR-per-page model (design sketch)
+# Multi-page publish — PR-per-page model
 
-> **Status: SKETCH / not built.** This is the agreed design for generalizing the
-> Content Studio from one page to many, derived from the Tier-0 → multi-user
-> discussion (2026-06-05). Tier 0 (server-authoritative single preview) is built;
-> this is the next architectural step. A basic second page (`/page-2`) ships now
-> as a test fixture (see "Current state").
+> **Status (2026-06-08): BUILT.** The PR-per-page model is shipped — `PAGES` registry,
+> per-page `studio/<slug>` branches, page-scoped drafts/publish, and pages `/`, `/page-2`,
+> `/about` all live. The §1–§5 architecture below is implemented (see `lib/content/pages.ts`,
+> `lib/studio/github.ts`, `lib/studio/changeset.ts`).
+>
+> **⚠️ §6 "Studio shell — page switcher" is being RETIRED.** The next build replaces the iframe
+> shell + dropdown with an in-place "admin-bar" editor (floating pencil on any page → edit in
+> place, no iframe). See `docs/superpowers/plans/2026-06-08-in-place-editor.md` and
+> `docs/handoff-2026-06-08.md`. The per-page-PR spine (§1–§5) is KEPT; only the iframe entry/UI
+> changes. The Tier-1 frontier (shared draft/presence) and roles remain unbuilt.
 
 ## The model in one line
 
