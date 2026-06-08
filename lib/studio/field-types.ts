@@ -10,20 +10,27 @@
  *  - link     → { label, href, newTab }
  *  - image    → { src, alt }                          [P8]
  *  - layout   → a constrained enum string (a layout variant)  [AI layout]
+ *  - order    → string[] (collection item ids in display order)
  */
 
-export type FieldType = "text" | "richtext" | "link" | "image" | "layout";
+export type FieldType = "text" | "richtext" | "link" | "image" | "layout" | "order";
 
 export type LinkValue = { label: string; href: string; newTab: boolean };
 export type ImageValue = { src: string; alt: string };
+/** A reorder: the collection's item ids in display order. */
+export type OrderValue = string[];
 
 /** A field's value, discriminated by its FieldType at the call site. */
-export type FieldValue = string | LinkValue | ImageValue;
+export type FieldValue = string | LinkValue | ImageValue | OrderValue;
 
 export function isLinkValue(v: FieldValue): v is LinkValue {
-  return typeof v === "object" && v !== null && "href" in v && "label" in v;
+  return typeof v === "object" && v !== null && !Array.isArray(v) && "href" in v && "label" in v;
 }
 
 export function isImageValue(v: FieldValue): v is ImageValue {
-  return typeof v === "object" && v !== null && "src" in v;
+  return typeof v === "object" && v !== null && !Array.isArray(v) && "src" in v;
+}
+
+export function isOrderValue(v: FieldValue): v is OrderValue {
+  return Array.isArray(v);
 }
