@@ -27,8 +27,8 @@ export type HandleProps = {
 };
 
 export type ReorderableListProps<T extends { id: string }> = {
-  page: string;
-  /** content path of the collection, e.g. "team.members" */
+  /** content path of the collection, e.g. "team.members". The page slug is
+   *  derived from the iframe's pathname by recordBridgeEdit, so it isn't a prop. */
   path: string;
   items: T[];
   className?: string;
@@ -60,7 +60,6 @@ function SortableItem<T extends { id: string }>({
 /** Edit-mode drag-to-reorder for a collection. Reorders write to the draft
  *  store (live) + notify the shell for publish via recordBridgeEdit. */
 export function ReorderableList<T extends { id: string }>({
-  page,
   path,
   items,
   className,

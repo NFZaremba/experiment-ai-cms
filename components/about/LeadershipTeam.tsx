@@ -73,7 +73,6 @@ export function LeadershipTeam() {
         </Text>
         {isEdit ? (
           <ReorderableList
-            page={PAGE}
             path="team.members"
             items={members}
             className={gridCls}

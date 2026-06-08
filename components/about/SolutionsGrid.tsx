@@ -77,7 +77,6 @@ export function SolutionsGrid() {
         </Text>
         {isEdit ? (
           <ReorderableList
-            page={PAGE}
             path="solutions.items"
             items={items}
             className={gridCls}
