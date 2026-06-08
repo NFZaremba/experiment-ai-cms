@@ -1,11 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Text, cn } from "@syscore/ui-library";
 import { Magnet, Percent, TrendingUp, GraduationCap, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { getAboutContent } from "@/lib/content";
 import { LayoutChip } from "@/components/studio/LayoutChip";
-import { useLayoutValue } from "@/lib/studio/use-edit-mode";
+import { useLayoutValue, useOrderedItems, useIsEditMode } from "@/lib/studio/use-edit-mode";
+import type { HandleProps } from "@/components/studio/ReorderableList";
+
+const ReorderableList = dynamic(
+  () => import("@/components/studio/ReorderableList").then((m) => m.ReorderableList),
+  { ssr: false }
+);
 
 const { solutions } = getAboutContent();
 const PAGE = "about";
@@ -29,6 +36,37 @@ const COLS: Record<string, string> = {
 
 export function SolutionsGrid() {
   const columns = useLayoutValue(PAGE, "solutions.columns", solutions.columns);
+  const isEdit = useIsEditMode();
+  const items = useOrderedItems(PAGE, "solutions.items", solutions.items);
+  const gridCls = cn("grid gap-8", COLS[columns] ?? COLS.four);
+
+  const renderCard = (item: (typeof solutions.items)[number], handle?: HandleProps) => {
+    const Icon = ICONS[item.icon] ?? Sparkles;
+    const idx = solutions.items.findIndex((s) => s.id === item.id);
+    return (
+      <div className="flex flex-col gap-3">
+        {handle && (
+          <button
+            type="button"
+            ref={handle.ref}
+            {...handle.attributes}
+            {...handle.listeners}
+            aria-label={`Drag to reorder ${item.title}`}
+            className="cursor-grab self-start rounded p-1 text-gray-400 hover:bg-gray-100 active:cursor-grabbing"
+          >
+            ⠿
+          </button>
+        )}
+        <Icon className={cn("h-9 w-9", ICON_COLOR[idx % ICON_COLOR.length])} strokeWidth={1.5} />
+        <Text as="h3" variant="body-large" className="font-semibold text-gray-800" data-content-path={`solutions.items.${item.id}.title`}>
+          {item.title}
+        </Text>
+        <Text as="p" variant="body-small" className="text-gray-600" data-content-path={`solutions.items.${item.id}.body`}>
+          {item.body}
+        </Text>
+      </div>
+    );
+  };
 
   return (
     <section className="relative bg-gray-50 pb-20">
@@ -37,22 +75,17 @@ export function SolutionsGrid() {
         <Text as="h2" variant="heading-small" className="mb-10 text-gray-800" data-content-path="solutions.heading">
           {solutions.heading}
         </Text>
-        <div className={cn("grid gap-8", COLS[columns] ?? COLS.four)}>
-          {solutions.items.map((item, i) => {
-            const Icon = ICONS[item.icon] ?? Sparkles;
-            return (
-              <div key={i} className="flex flex-col gap-3">
-                <Icon className={cn("h-9 w-9", ICON_COLOR[i % ICON_COLOR.length])} strokeWidth={1.5} />
-                <Text as="h3" variant="body-large" className="font-semibold text-gray-800" data-content-path={`solutions.items.${i}.title`}>
-                  {item.title}
-                </Text>
-                <Text as="p" variant="body-small" className="text-gray-600" data-content-path={`solutions.items.${i}.body`}>
-                  {item.body}
-                </Text>
-              </div>
-            );
-          })}
-        </div>
+        {isEdit ? (
+          <ReorderableList
+            page={PAGE}
+            path="solutions.items"
+            items={items}
+            className={gridCls}
+            renderItem={(item, handle) => renderCard(item as (typeof solutions.items)[number], handle)}
+          />
+        ) : (
+          <div className={gridCls}>{items.map((item) => <div key={item.id}>{renderCard(item)}</div>)}</div>
+        )}
       </div>
     </section>
   );
