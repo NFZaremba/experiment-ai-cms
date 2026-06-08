@@ -40,6 +40,16 @@ export type BridgeDeselectMessage = {
   type: "deselect";
 };
 
+/** iframe → shell: the bridge produced an edit directly (e.g. a drag reorder),
+ *  so the shell records it for publish. Mirrors ApplyEditMessage in reverse. */
+export type BridgeEditMessage = {
+  source: "studio-bridge";
+  type: "edit";
+  path: string;
+  value: FieldValue;
+  fieldType: FieldType;
+};
+
 /** shell → iframe: apply a new value to a field (live preview). */
 export type ApplyEditMessage = {
   source: "studio-shell";
@@ -53,6 +63,7 @@ export type StudioMessage =
   | SelectFieldMessage
   | BridgeReadyMessage
   | BridgeDeselectMessage
+  | BridgeEditMessage
   | ApplyEditMessage;
 
 export function isStudioMessage(data: unknown): data is StudioMessage {
@@ -75,4 +86,8 @@ export function isDeselectMessage(m: StudioMessage): m is BridgeDeselectMessage 
 
 export function isApplyMessage(m: StudioMessage): m is ApplyEditMessage {
   return m.source === "studio-shell" && m.type === "apply";
+}
+
+export function isBridgeEditMessage(m: StudioMessage): m is BridgeEditMessage {
+  return m.source === "studio-bridge" && m.type === "edit";
 }

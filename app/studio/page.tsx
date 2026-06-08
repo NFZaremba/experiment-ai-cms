@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FloatingChatPanel, type Selection } from "@/components/studio/FloatingChatPanel";
 import { useDraftStore } from "@/lib/studio/draft-store";
 import {
+  isBridgeEditMessage,
   isDeselectMessage,
   isSelectMessage,
   isStudioMessage,
@@ -94,6 +95,10 @@ export default function StudioPage() {
         setReady(true);
         return;
       }
+      if (isBridgeEditMessage(e.data)) {
+        setEdit(currentPage, e.data.path, e.data.value);
+        return;
+      }
       if (isDeselectMessage(e.data)) {
         setSelection(null);
         return;
@@ -111,7 +116,7 @@ export default function StudioPage() {
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [setEdit, currentPage]);
 
   // Close the panel when clicking outside it within the shell chrome. (Clicks
   // inside the iframe don't reach this document — those are handled by the

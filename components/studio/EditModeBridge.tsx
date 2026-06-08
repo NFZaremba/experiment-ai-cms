@@ -6,9 +6,10 @@ import { pageSlugForPathname } from "@/lib/content/pages";
 import {
   isApplyMessage,
   isStudioMessage,
-  type SelectFieldMessage,
-  type BridgeReadyMessage,
   type BridgeDeselectMessage,
+  type BridgeEditMessage,
+  type BridgeReadyMessage,
+  type SelectFieldMessage,
 } from "@/lib/studio/messages";
 import {
   isImageValue,
@@ -48,9 +49,18 @@ const EDIT_STYLES = `
 `;
 
 function postToShell(
-  message: SelectFieldMessage | BridgeReadyMessage | BridgeDeselectMessage
+  message: SelectFieldMessage | BridgeReadyMessage | BridgeDeselectMessage | BridgeEditMessage
 ) {
   window.parent.postMessage(message, window.location.origin);
+}
+
+/** Record a bridge-originated edit (e.g. a drag reorder): update this window's
+ *  draft store so the page re-renders live, and notify the shell to persist it
+ *  for publish. */
+export function recordBridgeEdit(path: string, value: FieldValue, fieldType: FieldType) {
+  const slug = pageSlugForPathname(window.location.pathname);
+  useDraftStore.getState().setEdit(slug, path, value);
+  postToShell({ source: "studio-bridge", type: "edit", path, value, fieldType });
 }
 
 function fieldTypeOf(el: HTMLElement): FieldType {
@@ -76,6 +86,8 @@ function readValue(el: HTMLElement): FieldValue {
       return el.innerHTML;
     case "layout":
       // The chip carries the current variant value in data-current.
+      return el.dataset.current ?? "";
+    case "order":
       return el.dataset.current ?? "";
     default:
       return (el.textContent ?? "").trim();
@@ -109,6 +121,10 @@ function writeValue(el: HTMLElement, value: FieldValue) {
       // store (useLayoutValue) and re-renders the variant. We do refresh the
       // chip's data-current so a subsequent re-read reports the new value.
       if (typeof value === "string") el.dataset.current = value;
+      break;
+    case "order":
+      // No single-element DOM mutation: the collection re-renders from the draft
+      // store after recordBridgeEdit writes the new order.
       break;
     default:
       if (typeof value === "string") el.textContent = value;
