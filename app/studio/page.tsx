@@ -15,6 +15,12 @@ import { PAGE_LIST, type PageSlug } from "@/lib/content/pages";
 const editRouteFor = (slug: PageSlug) =>
   `${PAGE_LIST.find((p) => p.slug === slug)?.route ?? "/"}?edit=1`;
 
+// Deploy-preview poll budget. Sized for a brand-new page's FIRST (cold) Netlify
+// build — it installs deps and builds from scratch and can take several minutes,
+// well past the old ~3 min window that left the banner stuck on "Building…".
+const POLL_INTERVAL_MS = 5000;
+const MAX_POLL_TRIES = 72; // ~6 minutes
+
 export default function StudioPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -159,7 +165,14 @@ export default function StudioPage() {
           return;
         }
       }
-      if (!cancelled && tries < 40) setTimeout(poll, 5000);
+      if (!cancelled && tries < MAX_POLL_TRIES) {
+        setTimeout(poll, POLL_INTERVAL_MS);
+      } else if (!cancelled) {
+        // Build outlived our polling window. Don't strand the editor on an
+        // eternal spinner — the preview may well be ready by now (a new page's
+        // first build is slow). Surface the deploy-preview link + a way forward.
+        setPreviewStatus("unavailable");
+      }
     };
     poll();
     return () => {
@@ -366,10 +379,23 @@ export default function StudioPage() {
               </button>
             </>
           ) : (
-            <span className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
-              Building deploy preview… (~1–2 min). “Publish for real” unlocks when it’s green.
-            </span>
+            <>
+              <span className="inline-flex items-center gap-2">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+                Building deploy preview… (a new page’s first build can take a few minutes).
+                “Publish for real” unlocks when it’s green.
+              </span>
+              {result.previewUrl && (
+                <a
+                  href={result.previewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium underline"
+                >
+                  Open deploy preview ↗
+                </a>
+              )}
+            </>
           )}
         </div>
       )}
