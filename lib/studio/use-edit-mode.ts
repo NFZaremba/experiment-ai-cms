@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useDraftStore } from "./draft-store";
+import { reorderById } from "./order";
 
 /**
  * True when the page is rendered inside the Studio preview (`?edit=1`).
@@ -27,4 +28,21 @@ export function useLayoutValue(page: string, path: string, fallback: string): st
   const draft = useDraftStore((s) => s.pages[page]?.edits[path]);
   if (isEdit && typeof draft === "string") return draft;
   return fallback;
+}
+
+/**
+ * The live display order of a collection. In edit mode, if a reorder draft
+ * exists for `path` (an id list), returns the items in that order; otherwise the
+ * items as-authored. Gated to edit mode so a stale localStorage draft can never
+ * reorder the published site.
+ */
+export function useOrderedItems<T extends { id: string }>(
+  page: string,
+  path: string,
+  items: T[]
+): T[] {
+  const isEdit = useIsEditMode();
+  const draft = useDraftStore((s) => s.pages[page]?.edits[path]);
+  if (isEdit && Array.isArray(draft)) return reorderById(items, draft as string[]);
+  return items;
 }
