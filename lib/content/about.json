@@ -18,21 +18,25 @@
     "columns": "four",
     "items": [
       {
+        "id": "talent",
         "icon": "magnet",
         "title": "Attracting top talent",
         "body": "Attracting top talent, raising productivity, cultivating long-term resilience and improving business performance."
       },
       {
+        "id": "business-case",
         "icon": "percent",
         "title": "Making the business case",
         "body": "Making the business case for strategic investments in health and well-being."
       },
       {
+        "id": "knowledge",
         "icon": "trending-up",
         "title": "Becoming more knowledgeable",
         "body": "Becoming more knowledgeable about how we can use our places and spaces to make us safer and healthier."
       },
       {
+        "id": "credentials",
         "icon": "graduation-cap",
         "title": "Adding credentials",
         "body": "Adding important professional credentials for career advancement."
@@ -58,17 +62,17 @@
     "cta": "Meet the rest of the team",
     "columns": "four",
     "members": [
-      { "name": "Rachel Hodgdon", "role": "President & CEO, IWBI" },
-      { "name": "Prateek Khanna", "role": "COO" },
-      { "name": "Judith Webb", "role": "Chief of Staff" },
-      { "name": "Jessica Cooper", "role": "Chief Product Officer" },
-      { "name": "Jason Hartke, Ph.D.", "role": "Executive Vice President, External Affairs" },
-      { "name": "Xue Ya", "role": "President of IWBI Asia" },
-      { "name": "Lindsay Jacobs", "role": "Senior Vice President, Head of Sales and Marketing" },
-      { "name": "Jodie Pimentel", "role": "Chief Counsel, IWBI" },
-      { "name": "Paul Scialla", "role": "Founder" },
-      { "name": "Rick Fedrizzi", "role": "Executive Chairman" },
-      { "name": "Kimberly Lewis Inkumsah", "role": "Executive Vice President, Equity, Engagement, and Events" }
+      { "id": "rachel-hodgdon", "name": "Rachel Hodgdon", "role": "President & CEO, IWBI" },
+      { "id": "prateek-khanna", "name": "Prateek Khanna", "role": "COO" },
+      { "id": "judith-webb", "name": "Judith Webb", "role": "Chief of Staff" },
+      { "id": "jessica-cooper", "name": "Jessica Cooper", "role": "Chief Product Officer" },
+      { "id": "jason-hartke", "name": "Jason Hartke, Ph.D.", "role": "Executive Vice President, External Affairs" },
+      { "id": "xue-ya", "name": "Xue Ya", "role": "President of IWBI Asia" },
+      { "id": "lindsay-jacobs", "name": "Lindsay Jacobs", "role": "Senior Vice President, Head of Sales and Marketing" },
+      { "id": "jodie-pimentel", "name": "Jodie Pimentel", "role": "Chief Counsel, IWBI" },
+      { "id": "paul-scialla", "name": "Paul Scialla", "role": "Founder" },
+      { "id": "rick-fedrizzi", "name": "Rick Fedrizzi", "role": "Executive Chairman" },
+      { "id": "kimberly-lewis-inkumsah", "name": "Kimberly Lewis Inkumsah", "role": "Executive Vice President, Equity, Engagement, and Events" }
     ]
   },
   "stats": {

@@ -146,7 +146,7 @@ export const aboutSchema = z.object({
     heading: z.string(),
     columns: z.enum(["four", "three", "two"]).default("four"),
     items: z.array(
-      z.object({ icon: z.string(), title: z.string(), body: z.string() })
+      z.object({ id: z.string(), icon: z.string(), title: z.string(), body: z.string() })
     ),
   }),
   report: z.object({
@@ -167,7 +167,7 @@ export const aboutSchema = z.object({
     heading: z.string(),
     cta: z.string(),
     columns: z.enum(["four", "three", "two"]).default("four"),
-    members: z.array(z.object({ name: z.string(), role: z.string() })),
+    members: z.array(z.object({ id: z.string(), name: z.string(), role: z.string() })),
   }),
   stats: z.object({
     layout: z.enum(["row", "grid"]).default("row"),
