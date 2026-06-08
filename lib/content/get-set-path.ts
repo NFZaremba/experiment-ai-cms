@@ -3,6 +3,14 @@
  * path. Paths use dots for object keys and numeric segments for array indices,
  * e.g. `hero.title`, `features.items.0.title`, `intro.paragraphs.1.0.text`.
  *
+ * Array segments support two forms:
+ *   - Numeric:     `members.0.name`   — positional index (classic)
+ *   - ID-based:    `members.rachel.name` — matches the element whose `id` field
+ *                  equals the segment (reorder-stable addressing)
+ *
+ * INVARIANT: a digit-only segment is ALWAYS a positional index, so reorderable
+ * item ids must be non-numeric — a numeric-looking id would be unreachable.
+ *
  * This is the single place that translates a `data-content-path` string into a
  * value (and back). Keep it tiny and dependency-free.
  */
@@ -12,10 +20,28 @@ type AnyRecord = Record<string, unknown>;
 /** Path segments that could pollute Object.prototype — never allowed. */
 const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
+const isDigits = (s: string) => /^\d+$/.test(s);
+
+/**
+ * Resolve a path segment to an array index. Numeric segment → that index.
+ * Non-numeric segment → the index of the element whose `id` equals it
+ * (reorder-stable addressing), or -1 if none.
+ */
+function resolveIndex(arr: unknown[], key: string): number {
+  if (isDigits(key)) return Number(key);
+  return arr.findIndex(
+    (el) => el != null && typeof el === "object" && (el as AnyRecord).id === key
+  );
+}
+
 /** Read the value at `path`, or `undefined` if any segment is missing. */
 export function getByPath(obj: unknown, path: string): unknown {
   return path.split(".").reduce<unknown>((acc, key) => {
     if (acc == null) return undefined;
+    if (Array.isArray(acc)) {
+      const i = resolveIndex(acc, key);
+      return i < 0 ? undefined : acc[i];
+    }
     return (acc as AnyRecord)[key];
   }, obj);
 }
@@ -37,7 +63,10 @@ export function setByPath<T>(obj: T, path: string, value: unknown): T {
     const clone: AnyRecord | unknown[] = isArray
       ? [...(node as unknown[])]
       : { ...(node as AnyRecord) };
-    const accessor = isArray ? Number(key) : key;
+    const accessor = isArray ? resolveIndex(node as unknown[], key) : key;
+    if (isArray && (accessor as number) < 0) {
+      throw new Error(`No array item matches segment "${key}" in path: ${path}`);
+    }
 
     if (idx === keys.length - 1) {
       (clone as AnyRecord)[accessor as string] = value;
