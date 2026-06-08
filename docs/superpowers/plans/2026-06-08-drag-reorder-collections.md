@@ -12,7 +12,7 @@
 - Dev server runs on **port 3002** (`npm run dev`); restart after big changes (HMR goes stale).
 - `npm run build` is the real gate; `tsc --noEmit` has pre-existing `@syscore`/`YT` noise — filter to changed files.
 - Commit after each task. Do **not** push (push deploys prod; user pushes).
-- Data-layer test files live in `tests/` and run with `npx tsx tests/<file>.test.ts`. The test files import the module under test by **relative** path; `@/` aliases that appear *transitively* (inside `changeset.ts`, `pages.ts`, etc.) are resolved by tsx v4 from the project `tsconfig.json` `paths`. If any test errors on an unresolved `@/`, run it as `npx tsx --tsconfig ./tsconfig.json tests/<file>.test.ts`.
+- Data-layer test files live in `tests/` and run with **`npx tsx --conditions react-server tests/<file>.test.ts`**. The `react-server` condition is REQUIRED for any test that transitively imports a `server-only` module (e.g. `changeset.ts` → `sanitize-server.ts`) — without it, `import "server-only"` throws in plain Node. It's harmless for the pure tests, so use it for all of them. Test files import the module under test by **relative** path; `@/` aliases that appear transitively are resolved by tsx v4 from `tsconfig.json` `paths`.
 
 ---
 
@@ -991,7 +991,7 @@ Expected output includes:
 
 Run:
 ```bash
-for f in tests/field-types tests/order tests/get-set-path tests/about-schema tests/changeset-reorder; do npx tsx "$f.test.ts" || exit 1; done
+for f in tests/field-types tests/order tests/get-set-path tests/about-schema tests/changeset-reorder; do npx tsx --conditions react-server "$f.test.ts" || exit 1; done
 npm run build
 npx tsc --noEmit 2>&1 | grep -E "components/(about|studio)|lib/(studio|content)" || echo "tsc clean on changed files"
 ```
