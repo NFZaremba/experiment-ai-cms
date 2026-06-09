@@ -5,11 +5,12 @@
 > `/about` all live. The §1–§5 architecture below is implemented (see `lib/content/pages.ts`,
 > `lib/studio/github.ts`, `lib/studio/changeset.ts`).
 >
-> **⚠️ §6 "Studio shell — page switcher" is being RETIRED.** The next build replaces the iframe
-> shell + dropdown with an in-place "admin-bar" editor (floating pencil on any page → edit in
-> place, no iframe). See `docs/superpowers/plans/2026-06-08-in-place-editor.md` and
-> `docs/handoff-2026-06-08.md`. The per-page-PR spine (§1–§5) is KEPT; only the iframe entry/UI
-> changes. The Tier-1 frontier (shared draft/presence) and roles remain unbuilt.
+> **✅ §6 "Studio shell — page switcher" is RETIRED (done 2026-06-09).** The iframe shell + dropdown were
+> replaced by an in-place "admin-bar" editor (floating pencil on any page → edit in place, no iframe, no
+> postMessage); `/studio` is now just an authed directory landing. **The editor is its own domain now —
+> see `docs/in-place-editor_checkpoint.md` (authoritative).** The per-page-PR spine (§1–§5 below) is KEPT
+> and unchanged; only the entry/UI changed. The Tier-1 frontier (shared draft/presence) and roles remain
+> unbuilt.
 
 ## The model in one line
 
