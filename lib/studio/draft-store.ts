@@ -33,6 +33,9 @@ type PageDraft = { edits: DraftEdits; lastPublish: PublishResult | null };
 type DraftState = {
   pages: Record<string, PageDraft>;
   setEdit: (page: string, path: string, value: FieldValue) => void;
+  /** Remove a single edit (used to revert a live-previewed change on Cancel when
+   *  no draft existed for that path before the edit session). */
+  removeEdit: (page: string, path: string) => void;
   setLastPublish: (page: string, result: PublishResult | null) => void;
   clearPage: (page: string) => void;
 };
@@ -55,6 +58,14 @@ export const useDraftStore = create<DraftState>()(
               [page]: { edits: { ...prev.edits, [path]: value }, lastPublish: null },
             },
           };
+        }),
+      removeEdit: (page, path) =>
+        set((s) => {
+          const prev = s.pages[page];
+          if (!prev || !(path in prev.edits)) return s;
+          const rest = { ...prev.edits };
+          delete rest[path];
+          return { pages: { ...s.pages, [page]: { ...prev, edits: rest } } };
         }),
       setLastPublish: (page, result) =>
         set((s) => {

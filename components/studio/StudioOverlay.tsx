@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FloatingChatPanel, type Selection } from "@/components/studio/FloatingChatPanel";
 import { StudioToolbar, type PreviewStatus } from "@/components/studio/StudioToolbar";
 import { useDraftStore } from "@/lib/studio/draft-store";
@@ -11,7 +11,12 @@ import {
   fieldTypeOf,
   readValue,
 } from "@/lib/studio/edit-dom";
-import type { FieldType, FieldValue } from "@/lib/studio/field-types";
+import {
+  STYLE_KEY_PREFIX,
+  type FieldType,
+  type FieldValue,
+  type TextStyleValue,
+} from "@/lib/studio/field-types";
 import { PAGES, pageSlugForPathname } from "@/lib/content/pages";
 
 // Deploy-preview poll budget. Sized for a brand-new page's FIRST (cold) Netlify
@@ -45,6 +50,7 @@ export function StudioOverlay() {
 
   const clearPage = useDraftStore((s) => s.clearPage);
   const setEdit = useDraftStore((s) => s.setEdit);
+  const removeEdit = useDraftStore((s) => s.removeEdit);
   const draftCount = useDraftStore((s) => Object.keys(s.pages[currentPage]?.edits ?? {}).length);
   // Persisted per page so the preview link + "Publish for real" survive a refresh.
   const result = useDraftStore((s) => s.pages[currentPage]?.lastPublish ?? null);
@@ -56,6 +62,17 @@ export function StudioOverlay() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>(null);
+
+  // Snapshot of the selected block's draft state at the moment the panel opened,
+  // so Cancel can revert the live-previewed changes. `undefined` for a key means
+  // no draft existed → restoring removes it (vs. setting it back to a prior value).
+  const editSnapshot = useRef<{
+    fieldPath: string;
+    fieldDomBefore: FieldValue;
+    fieldDraftBefore: FieldValue | undefined;
+    stylePath?: string;
+    styleDraftBefore: FieldValue | undefined;
+  } | null>(null);
 
   // Reconcile the current page's open preview from GitHub truth on load: a fresh
   // tab/browser discovers the existing preview instead of spawning a duplicate,
@@ -164,12 +181,35 @@ export function StudioOverlay() {
       e.preventDefault();
       e.stopPropagation();
       const rect = el.getBoundingClientRect();
+      const path = el.getAttribute("data-content-path")!;
+      // EditableText blocks expose their current style via data-style-* attrs,
+      // enabling the color/background/alignment controls in the text editor.
+      const styleable = el.hasAttribute("data-styleable");
+      const style: TextStyleValue | undefined = styleable
+        ? {
+            color: el.dataset.styleColor || undefined,
+            background: el.dataset.styleBg || undefined,
+            align: (el.dataset.styleAlign as TextStyleValue["align"]) || undefined,
+          }
+        : undefined;
+      const domBefore = readValue(el);
+      const stylePath = styleable ? `${STYLE_KEY_PREFIX}${path}` : undefined;
+      const edits = useDraftStore.getState().pages[currentPage]?.edits ?? {};
+      editSnapshot.current = {
+        fieldPath: path,
+        fieldDomBefore: domBefore,
+        fieldDraftBefore: edits[path],
+        stylePath,
+        styleDraftBefore: stylePath ? edits[stylePath] : undefined,
+      };
       setSelection({
-        path: el.getAttribute("data-content-path")!,
+        path,
         rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
         point: { x: e.clientX, y: e.clientY },
-        currentValue: readValue(el),
+        currentValue: domBefore,
         fieldType: fieldTypeOf(el),
+        stylePath,
+        style,
       });
     };
 
@@ -246,6 +286,34 @@ export function StudioOverlay() {
     },
     [setEdit, currentPage]
   );
+
+  // Style edits live under a `style::<path>` key; EditableText's useTextStyle hook
+  // re-renders the block from the draft, so no DOM mutation is needed here.
+  const applyStyle = useCallback(
+    (stylePath: string, value: TextStyleValue) => {
+      setEdit(currentPage, stylePath, value);
+    },
+    [setEdit, currentPage]
+  );
+
+  // Revert the block to its pre-edit state (changes are applied live, so Cancel
+  // must undo them). For each affected key: restore the prior draft value, or
+  // remove the draft if none existed before. Field-path edits also restore the
+  // DOM (covers applyOverride-driven types like text/image; hook-driven types
+  // re-render from the restored store). Closes the panel.
+  const cancelEdit = useCallback(() => {
+    const snap = editSnapshot.current;
+    if (snap) {
+      if (snap.fieldDraftBefore === undefined) removeEdit(currentPage, snap.fieldPath);
+      else setEdit(currentPage, snap.fieldPath, snap.fieldDraftBefore);
+      applyOverride(snap.fieldPath, snap.fieldDomBefore);
+      if (snap.stylePath) {
+        if (snap.styleDraftBefore === undefined) removeEdit(currentPage, snap.stylePath);
+        else setEdit(currentPage, snap.stylePath, snap.styleDraftBefore);
+      }
+    }
+    setSelection(null);
+  }, [currentPage, removeEdit, setEdit]);
 
   const resetDrafts = async () => {
     const open = useDraftStore.getState().pages[currentPage]?.lastPublish ?? null;
@@ -361,6 +429,8 @@ export function StudioOverlay() {
           iframeRect={null}
           page={currentPage}
           onApply={applyEdit}
+          onApplyStyle={applyStyle}
+          onCancel={cancelEdit}
           onClose={() => setSelection(null)}
         />
       )}

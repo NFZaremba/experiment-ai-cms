@@ -1,8 +1,9 @@
 "use client";
 
-import { Text, cn } from "@syscore/ui-library";
+import { cn } from "@syscore/ui-library";
 import { getAboutContent } from "@/lib/content";
 import { LayoutChip } from "@/components/studio/LayoutChip";
+import { EditableText } from "@/components/studio/EditableText";
 import { useLayoutValue } from "@/lib/studio/use-edit-mode";
 
 const { hero } = getAboutContent();
@@ -31,25 +32,25 @@ export function AboutHero() {
           textAlign === "center" ? "items-center text-center" : "items-start text-left"
         )}
       >
-        <Text
+        <EditableText
           as="p"
           variant="body-small"
           className="font-semibold uppercase tracking-[0.18em] text-bronze-300"
-          data-content-path="hero.eyebrow"
+          path="hero.eyebrow"
         >
           {hero.eyebrow}
-        </Text>
-        <Text as="h1" variant="heading-xlarge" className="text-white" data-content-path="hero.title">
+        </EditableText>
+        <EditableText as="h1" variant="heading-xlarge" className="text-white" path="hero.title">
           {hero.title}
-        </Text>
-        <Text
+        </EditableText>
+        <EditableText
           as="p"
           variant="body-large"
           className="max-w-2xl text-white/80"
-          data-content-path="hero.subtitle"
+          path="hero.subtitle"
         >
           {hero.subtitle}
-        </Text>
+        </EditableText>
       </div>
     </section>
   );

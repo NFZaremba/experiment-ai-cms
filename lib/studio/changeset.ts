@@ -2,7 +2,7 @@ import { getByPath, setByPath } from "@/lib/content/get-set-path";
 import { isRichtextPath } from "@/lib/content/paths";
 import { PAGES, type PageSlug } from "@/lib/content/pages";
 import { sanitizeHtmlServer } from "./sanitize-server";
-import { isOrderValue } from "./field-types";
+import { isOrderValue, STYLE_KEY_PREFIX } from "./field-types";
 import { reorderById } from "./order";
 import type { DraftEdits } from "./draft-store";
 
@@ -30,6 +30,17 @@ export function buildContentChangeSet(slug: PageSlug, edits: DraftEdits): Change
   const page = PAGES[slug];
   let doc: unknown = page.json;
   for (const [path, value] of Object.entries(edits)) {
+    // Style edit: `style::<contentPath>` → write into the page's flat `styles`
+    // map keyed by the content-path (handled before the path-based branches so a
+    // dotted content-path key isn't treated as a nested object path). The Zod
+    // schema's `styles` record + token enum is the write-allowlist for these.
+    if (path.startsWith(STYLE_KEY_PREFIX)) {
+      const target = path.slice(STYLE_KEY_PREFIX.length);
+      const prev = (getByPath(doc, "styles") as Record<string, unknown> | undefined) ?? {};
+      doc = setByPath(doc, "styles", { ...prev, [target]: value });
+      continue;
+    }
+
     // Reorder: value is an id list → permute the array at `path` (id-keyed, so
     // it composes with leaf edits regardless of application order).
     if (isOrderValue(value)) {

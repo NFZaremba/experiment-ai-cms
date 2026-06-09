@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Text, Button, cn } from "@syscore/ui-library";
+import { Button, cn } from "@syscore/ui-library";
+import { EditableText } from "@/components/studio/EditableText";
 import { getAboutContent } from "@/lib/content";
 import { LayoutChip } from "@/components/studio/LayoutChip";
 import { useLayoutValue, useOrderedItems, useImageValue, useIsEditMode } from "@/lib/studio/use-edit-mode";
@@ -79,12 +80,12 @@ function TeamMember({
           <span className="heading-small">{initials(m.name)}</span>
         </div>
       )}
-      <Text as="p" variant="body-large" className="font-semibold text-gray-800" data-content-path={`team.members.${m.id}.name`}>
+      <EditableText as="p" variant="body-large" className="font-semibold text-gray-800" path={`team.members.${m.id}.name`}>
         {m.name}
-      </Text>
-      <Text as="p" variant="body-small" className="text-gray-500" data-content-path={`team.members.${m.id}.role`}>
+      </EditableText>
+      <EditableText as="p" variant="body-small" className="text-gray-500" path={`team.members.${m.id}.role`}>
         {m.role}
-      </Text>
+      </EditableText>
     </div>
   );
 }
@@ -99,9 +100,9 @@ export function LeadershipTeam() {
     <section className="relative bg-white py-20">
       <LayoutChip path="team.columns" value={columns} label="Columns" />
       <div className="container-sm mx-auto flex flex-col items-center">
-        <Text as="h2" variant="heading-large" className="mb-12 text-center text-gray-800" data-content-path="team.heading">
+        <EditableText as="h2" variant="heading-large" className="mb-12 text-center text-gray-800" path="team.heading">
           {team.heading}
-        </Text>
+        </EditableText>
         {isEdit ? (
           <ReorderableList
             path="team.members"

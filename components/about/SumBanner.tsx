@@ -1,6 +1,7 @@
 "use client";
 
-import { Text, cn } from "@syscore/ui-library";
+import { cn } from "@syscore/ui-library";
+import { EditableText } from "@/components/studio/EditableText";
 import { getAboutContent } from "@/lib/content";
 import { LayoutChip } from "@/components/studio/LayoutChip";
 import { useLayoutValue } from "@/lib/studio/use-edit-mode";
@@ -25,20 +26,20 @@ export function SumBanner() {
           textAlign === "center" ? "items-center text-center" : "items-start text-left"
         )}
       >
-        <Text
+        <EditableText
           as="p"
           variant="body-small"
           className="font-semibold uppercase tracking-[0.18em] text-white/80"
-          data-content-path="sum.eyebrow"
+          path="sum.eyebrow"
         >
           {sum.eyebrow}
-        </Text>
-        <Text as="h2" variant="heading-large" className="max-w-3xl text-white" data-content-path="sum.heading">
+        </EditableText>
+        <EditableText as="h2" variant="heading-large" className="max-w-3xl text-white" path="sum.heading">
           {sum.heading}
-        </Text>
-        <Text as="p" variant="body-large" className="max-w-2xl text-white/85" data-content-path="sum.body">
+        </EditableText>
+        <EditableText as="p" variant="body-large" className="max-w-2xl text-white/85" path="sum.body">
           {sum.body}
-        </Text>
+        </EditableText>
       </div>
     </section>
   );

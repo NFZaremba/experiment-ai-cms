@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { Text, Button, SectionBadge, cn } from "@syscore/ui-library";
+import { Button, SectionBadge, cn } from "@syscore/ui-library";
+import { EditableText } from "@/components/studio/EditableText";
 import { getAboutContent } from "@/lib/content";
 import { LayoutChip } from "@/components/studio/LayoutChip";
 import { useLayoutValue } from "@/lib/studio/use-edit-mode";
@@ -30,12 +31,12 @@ export function AnnualReport() {
             <SectionBadge className="mb-4 bg-bronze-50 text-bronze-600" data-content-path="report.tag">
               {report.tag}
             </SectionBadge>
-            <Text as="h2" variant="heading-small" className="text-gray-800" data-content-path="report.heading">
+            <EditableText as="h2" variant="heading-small" className="text-gray-800" path="report.heading">
               {report.heading}
-            </Text>
-            <Text as="p" variant="body-large" className="mt-4 text-gray-600" data-content-path="report.body">
+            </EditableText>
+            <EditableText as="p" variant="body-large" className="mt-4 text-gray-600" path="report.body">
               {report.body}
-            </Text>
+            </EditableText>
             <Button
               variant="primary-dark"
               size="large"

@@ -10,9 +10,11 @@ import {
   type FieldValue,
   type ImageValue,
   type LinkValue,
+  type TextStyleValue,
 } from "@/lib/studio/field-types";
 import { layoutFieldFor } from "@/lib/content/layout-vocab";
 import { ICON_KEYS, iconFor } from "@/lib/content/icons";
+import { COLOR_FAMILIES, COLOR_STEPS, SINGLE_COLOR_KEYS, cssVarFor } from "@/lib/content/colors";
 import { RichTextEditor } from "./RichTextEditor";
 
 export type Selection = {
@@ -21,6 +23,10 @@ export type Selection = {
   point: { x: number; y: number };
   fieldType: FieldType;
   currentValue: FieldValue;
+  /** Set for EditableText blocks: the `style::<path>` draft key + current style,
+   *  enabling the color / background / alignment controls in the text editor. */
+  stylePath?: string;
+  style?: TextStyleValue;
 };
 
 /**
@@ -36,12 +42,17 @@ export function FloatingChatPanel({
   iframeRect,
   page,
   onApply,
+  onApplyStyle,
+  onCancel,
   onClose,
 }: {
   selection: Selection;
   iframeRect: DOMRect | null;
   page: string;
   onApply: (path: string, value: FieldValue, fieldType: FieldType) => void;
+  onApplyStyle: (stylePath: string, value: TextStyleValue) => void;
+  /** Revert live-previewed changes (Cancel/Escape on live editors). */
+  onCancel: () => void;
   onClose: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -107,10 +118,11 @@ export function FloatingChatPanel({
       ) : selection.fieldType === "richtext" ? (
         <RichEditor
           initial={typeof selection.currentValue === "string" ? selection.currentValue : ""}
-          onApply={(v) => {
-            onApply(selection.path, v, "richtext");
-            onClose();
-          }}
+          stylePath={selection.stylePath}
+          initialStyle={selection.style}
+          onApply={(v) => onApply(selection.path, v, "richtext")}
+          onApplyStyle={onApplyStyle}
+          onCancel={onCancel}
           onClose={onClose}
         />
       ) : selection.fieldType === "image" && isImageValue(selection.currentValue) ? (
@@ -127,28 +139,25 @@ export function FloatingChatPanel({
           path={selection.path}
           page={page}
           initial={selection.currentValue}
-          onApply={(v) => {
-            onApply(selection.path, v, "layout");
-            onClose();
-          }}
+          onApply={(v) => onApply(selection.path, v, "layout")}
+          onCancel={onCancel}
           onClose={onClose}
         />
       ) : selection.fieldType === "icon" && typeof selection.currentValue === "string" ? (
         <IconEditor
           initial={selection.currentValue}
-          onApply={(v) => {
-            onApply(selection.path, v, "icon");
-            onClose();
-          }}
+          onApply={(v) => onApply(selection.path, v, "icon")}
+          onCancel={onCancel}
           onClose={onClose}
         />
       ) : (
         <TextEditor
           initial={typeof selection.currentValue === "string" ? selection.currentValue : ""}
-          onApply={(v) => {
-            onApply(selection.path, v, selection.fieldType);
-            onClose();
-          }}
+          stylePath={selection.stylePath}
+          initialStyle={selection.style}
+          onApply={(v) => onApply(selection.path, v, selection.fieldType)}
+          onApplyStyle={onApplyStyle}
+          onCancel={onCancel}
           onClose={onClose}
         />
       )}
@@ -158,54 +167,95 @@ export function FloatingChatPanel({
 
 function TextEditor({
   initial,
+  stylePath,
+  initialStyle,
   onApply,
+  onApplyStyle,
+  onCancel,
   onClose,
 }: {
   initial: string;
+  stylePath?: string;
+  initialStyle?: TextStyleValue;
   onApply: (value: string) => void;
+  onApplyStyle?: (stylePath: string, value: TextStyleValue) => void;
+  onCancel: () => void;
   onClose: () => void;
 }) {
   const [value, setValue] = useState(initial);
+  const [style, setStyle] = useState<TextStyleValue>(initialStyle ?? {});
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     setValue(initial);
     ref.current?.focus();
   }, [initial]);
+  useEffect(() => setStyle(initialStyle ?? {}), [initialStyle]);
 
+  // Live: each change previews on the page immediately. Done keeps it; Cancel
+  // (or Esc) reverts to the pre-edit state.
   return (
     <>
       <textarea
         ref={ref}
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => {
+          setValue(e.target.value);
+          onApply(e.target.value);
+        }}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onApply(value);
-          if (e.key === "Escape") onClose();
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onClose();
+          if (e.key === "Escape") onCancel();
         }}
         rows={4}
         className="w-full resize-y rounded-md border border-gray-200 p-2 text-sm text-gray-900 outline-none focus:border-cyan-500"
       />
-      <Actions onApply={() => onApply(value)} onClose={onClose} hint="⌘↵ to apply · Esc to cancel" />
+      {stylePath && (
+        <StyleControls
+          value={style}
+          onChange={(next) => {
+            setStyle(next);
+            if (stylePath && onApplyStyle) onApplyStyle(stylePath, next);
+          }}
+        />
+      )}
+      <Actions onApply={onClose} onClose={onCancel} applyLabel="Done" hint="Changes preview live · Esc to cancel" />
     </>
   );
 }
 
 function RichEditor({
   initial,
+  stylePath,
+  initialStyle,
   onApply,
+  onApplyStyle,
+  onCancel,
   onClose,
 }: {
   initial: string;
+  stylePath?: string;
+  initialStyle?: TextStyleValue;
   onApply: (value: string) => void;
+  onApplyStyle?: (stylePath: string, value: TextStyleValue) => void;
+  onCancel: () => void;
   onClose: () => void;
 }) {
-  const [value, setValue] = useState(initial);
-  useEffect(() => setValue(initial), [initial]);
+  const [style, setStyle] = useState<TextStyleValue>(initialStyle ?? {});
+  useEffect(() => setStyle(initialStyle ?? {}), [initialStyle]);
 
   return (
     <>
-      <RichTextEditor initialHtml={initial} onChange={setValue} />
-      <Actions onApply={() => onApply(value)} onClose={onClose} hint="Bold / italic / link" />
+      <RichTextEditor initialHtml={initial} onChange={(v) => onApply(v)} />
+      {stylePath && (
+        <StyleControls
+          value={style}
+          onChange={(next) => {
+            setStyle(next);
+            if (stylePath && onApplyStyle) onApplyStyle(stylePath, next);
+          }}
+        />
+      )}
+      <Actions onApply={onClose} onClose={onCancel} applyLabel="Done" hint="Changes preview live" />
     </>
   );
 }
@@ -356,12 +406,14 @@ function SelectEditor({
   page,
   initial,
   onApply,
+  onCancel,
   onClose,
 }: {
   path: string;
   page: string;
   initial: string;
   onApply: (value: string) => void;
+  onCancel: () => void;
   onClose: () => void;
 }) {
   const field = layoutFieldFor(path);
@@ -372,6 +424,12 @@ function SelectEditor({
   useEffect(() => setValue(initial), [initial]);
 
   if (!field) return null;
+
+  // Live: pick a variant (or let AI fill it) and the page re-renders immediately.
+  const pick = (v: string) => {
+    setValue(v);
+    onApply(v);
+  };
 
   const askAi = async () => {
     if (!instruction.trim()) return;
@@ -386,7 +444,7 @@ function SelectEditor({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "AI request failed");
       // The server only ever returns a value from this field's allowlist.
-      if (typeof data.value === "string") setValue(data.value);
+      if (typeof data.value === "string") pick(data.value);
     } catch (e) {
       setAiError(e instanceof Error ? e.message : "AI request failed");
     } finally {
@@ -402,7 +460,7 @@ function SelectEditor({
           <button
             key={o.value}
             type="button"
-            onClick={() => setValue(o.value)}
+            onClick={() => pick(o.value)}
             className={`rounded-md border px-2.5 py-1 text-xs ${
               value === o.value
                 ? "border-cyan-600 bg-cyan-50 font-medium text-cyan-800"
@@ -437,7 +495,7 @@ function SelectEditor({
       </div>
       {aiError && <p className="mb-1 text-[11px] text-red-600">{aiError}</p>}
 
-      <Actions onApply={() => onApply(value)} onClose={onClose} hint="AI fills the options above" />
+      <Actions onApply={onClose} onClose={onCancel} applyLabel="Done" hint="Changes preview live" />
     </>
   );
 }
@@ -445,14 +503,22 @@ function SelectEditor({
 function IconEditor({
   initial,
   onApply,
+  onCancel,
   onClose,
 }: {
   initial: string;
   onApply: (value: string) => void;
+  onCancel: () => void;
   onClose: () => void;
 }) {
   const [value, setValue] = useState(initial);
   useEffect(() => setValue(initial), [initial]);
+
+  // Live: clicking an icon swaps it on the page immediately.
+  const pick = (key: string) => {
+    setValue(key);
+    onApply(key);
+  };
 
   return (
     <>
@@ -465,7 +531,7 @@ function IconEditor({
             <button
               key={key}
               type="button"
-              onClick={() => setValue(key)}
+              onClick={() => pick(key)}
               title={key}
               aria-label={key}
               aria-pressed={selected}
@@ -480,8 +546,136 @@ function IconEditor({
           );
         })}
       </div>
-      <Actions onApply={() => onApply(value)} onClose={onClose} hint="Pick an icon" />
+      <Actions onApply={onClose} onClose={onCancel} applyLabel="Done" hint="Changes preview live" />
     </>
+  );
+}
+
+/** Color/background/alignment controls for an EditableText block. Swatches are
+ *  the curated design-system palette; selecting "clear" removes that property. */
+function StyleControls({
+  value,
+  onChange,
+}: {
+  value: TextStyleValue;
+  onChange: (next: TextStyleValue) => void;
+}) {
+  const aligns: TextStyleValue["align"][] = ["left", "center", "right"];
+  return (
+    <div className="mt-2 flex flex-col gap-2 border-t border-gray-100 pt-2">
+      <SwatchRow
+        label="Text color"
+        clearLabel="Default"
+        selected={value.color}
+        onSelect={(key) => onChange({ ...value, color: key })}
+      />
+      <SwatchRow
+        label="Background"
+        clearLabel="None"
+        selected={value.background}
+        onSelect={(key) => onChange({ ...value, background: key })}
+      />
+      <div>
+        <span className="mb-1 block text-[11px] font-medium text-gray-500">Alignment</span>
+        <div className="flex gap-1">
+          {aligns.map((a) => (
+            <button
+              key={a}
+              type="button"
+              aria-label={`Align ${a}`}
+              aria-pressed={value.align === a}
+              // Re-clicking the active alignment clears it (back to default).
+              onClick={() => onChange({ ...value, align: value.align === a ? undefined : a })}
+              className={`flex-1 rounded-md border px-2 py-1 text-xs capitalize ${
+                value.align === a
+                  ? "border-cyan-600 bg-cyan-50 font-medium text-cyan-800"
+                  : "border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {a}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** A single color chip. aria-label is the token key (e.g. "plum-400"). */
+function Swatch({
+  colorKey,
+  selected,
+  onSelect,
+}: {
+  colorKey: string;
+  selected: boolean;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={colorKey}
+      aria-label={colorKey}
+      aria-pressed={selected}
+      onClick={() => onSelect(colorKey)}
+      style={{ backgroundColor: cssVarFor(colorKey) }}
+      className={`h-5 w-5 shrink-0 rounded ${
+        selected ? "ring-2 ring-cyan-600 ring-offset-1 border-transparent" : "border border-gray-300"
+      }`}
+    />
+  );
+}
+
+/** The full design-system palette, grouped by family (one row of steps each),
+ *  plus the standalone tokens and a "clear" option. */
+function SwatchRow({
+  label,
+  clearLabel,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  clearLabel: string;
+  selected?: string;
+  onSelect: (key: string | undefined) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-1 flex items-center gap-2">
+        <span className="text-[11px] font-medium text-gray-500">{label}</span>
+        <button
+          type="button"
+          aria-label={clearLabel}
+          aria-pressed={selected == null}
+          onClick={() => onSelect(undefined)}
+          className={`flex h-5 items-center rounded border px-1.5 text-[10px] ${
+            selected == null
+              ? "border-cyan-600 bg-cyan-50 text-cyan-800"
+              : "border-gray-200 text-gray-500 hover:bg-gray-50"
+          }`}
+        >
+          {clearLabel}
+        </button>
+        {SINGLE_COLOR_KEYS.map((k) => (
+          <Swatch key={k} colorKey={k} selected={selected === k} onSelect={onSelect} />
+        ))}
+      </div>
+      <div className="flex flex-col gap-1">
+        {COLOR_FAMILIES.map((family) => (
+          <div key={family} className="flex items-center gap-1.5">
+            <span className="w-12 shrink-0 text-[10px] capitalize text-gray-400">{family}</span>
+            <div className="flex gap-1">
+              {COLOR_STEPS.map((step) => {
+                const key = `${family}-${step}`;
+                return (
+                  <Swatch key={key} colorKey={key} selected={selected === key} onSelect={onSelect} />
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -489,10 +683,12 @@ function Actions({
   onApply,
   onClose,
   hint,
+  applyLabel = "Apply",
 }: {
   onApply: () => void;
   onClose: () => void;
   hint?: string;
+  applyLabel?: string;
 }) {
   return (
     <>
@@ -504,7 +700,7 @@ function Actions({
           onClick={onApply}
           className="rounded-md bg-cyan-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-800"
         >
-          Apply
+          {applyLabel}
         </button>
       </div>
       {hint && <p className="mt-1.5 text-[11px] text-gray-400">{hint}</p>}

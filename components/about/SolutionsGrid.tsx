@@ -1,10 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Text, cn } from "@syscore/ui-library";
+import { cn } from "@syscore/ui-library";
 import { getAboutContent } from "@/lib/content";
 import { iconFor } from "@/lib/content/icons";
 import { LayoutChip } from "@/components/studio/LayoutChip";
+import { EditableText } from "@/components/studio/EditableText";
 import { useLayoutValue, useOrderedItems, useIsEditMode } from "@/lib/studio/use-edit-mode";
 import type { HandleProps } from "@/components/studio/ReorderableList";
 
@@ -61,12 +62,12 @@ function SolutionCard({
       >
         <Icon className={cn("h-9 w-9", ICON_COLOR[idx % ICON_COLOR.length])} strokeWidth={1.5} />
       </span>
-      <Text as="h3" variant="body-large" className="font-semibold text-gray-800" data-content-path={`solutions.items.${item.id}.title`}>
+      <EditableText as="h3" variant="body-large" className="font-semibold text-gray-800" path={`solutions.items.${item.id}.title`}>
         {item.title}
-      </Text>
-      <Text as="p" variant="body-small" className="text-gray-600" data-content-path={`solutions.items.${item.id}.body`}>
+      </EditableText>
+      <EditableText as="p" variant="body-small" className="text-gray-600" path={`solutions.items.${item.id}.body`}>
         {item.body}
-      </Text>
+      </EditableText>
     </div>
   );
 }
@@ -81,9 +82,9 @@ export function SolutionsGrid() {
     <section className="relative bg-gray-50 pb-20">
       <LayoutChip path="solutions.columns" value={columns} label="Columns" />
       <div className="container-sm mx-auto">
-        <Text as="h2" variant="heading-small" className="mb-10 text-gray-800" data-content-path="solutions.heading">
+        <EditableText as="h2" variant="heading-small" className="mb-10 text-gray-800" path="solutions.heading">
           {solutions.heading}
-        </Text>
+        </EditableText>
         {isEdit ? (
           <ReorderableList
             path="solutions.items"

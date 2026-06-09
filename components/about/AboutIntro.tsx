@@ -1,8 +1,9 @@
 "use client";
 
-import { Text, cn } from "@syscore/ui-library";
+import { cn } from "@syscore/ui-library";
 import { getAboutContent } from "@/lib/content";
 import { LayoutChip } from "@/components/studio/LayoutChip";
+import { EditableText } from "@/components/studio/EditableText";
 import { useLayoutValue } from "@/lib/studio/use-edit-mode";
 
 const { intro } = getAboutContent();
@@ -23,15 +24,15 @@ export function AboutIntro() {
         )}
       >
         {intro.paragraphs.map((p, i) => (
-          <Text
+          <EditableText
             key={i}
             as="p"
             variant="body-large"
             className="mb-5 break-inside-avoid text-gray-700"
-            data-content-path={`intro.paragraphs.${i}`}
+            path={`intro.paragraphs.${i}`}
           >
             {p}
-          </Text>
+          </EditableText>
         ))}
       </div>
     </section>

@@ -1,6 +1,8 @@
 "use client";
 
 import { Text } from "@syscore/ui-library";
+import { getAboutContent } from "@/lib/content";
+import { TextStylesProvider } from "@/components/studio/EditableText";
 import { AboutHero } from "@/components/about/AboutHero";
 import { AboutIntro } from "@/components/about/AboutIntro";
 import { SolutionsGrid } from "@/components/about/SolutionsGrid";
@@ -8,6 +10,8 @@ import { AnnualReport } from "@/components/about/AnnualReport";
 import { SumBanner } from "@/components/about/SumBanner";
 import { LeadershipTeam } from "@/components/about/LeadershipTeam";
 import { StatsBand } from "@/components/about/StatsBand";
+
+const { styles } = getAboutContent();
 
 /**
  * The "About Us / People-First Places" page — a clean, animation-free copy of a
@@ -19,6 +23,7 @@ import { StatsBand } from "@/components/about/StatsBand";
  */
 export default function AboutPage() {
   return (
+    <TextStylesProvider page="about" styles={styles}>
     <main className="bg-gray-50">
       <AboutHero />
       <AboutIntro />
@@ -42,5 +47,6 @@ export default function AboutPage() {
         </div>
       </footer>
     </main>
+    </TextStylesProvider>
   );
 }

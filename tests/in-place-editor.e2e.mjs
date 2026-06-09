@@ -82,11 +82,14 @@ async function newPage({ authed }) {
     await page.waitForTimeout(150);
     check('chrome-exclusion: panel stays open after clicking inside it', await panel.count() === 1);
 
-    // edit the textarea + apply
+    // edit the textarea — changes preview LIVE (before Done), then Done closes.
     const ta = panel.locator('textarea').first();
     if (await ta.count() === 1) {
       await ta.fill('EDITED HEADING ✦');
-      await panel.getByRole('button', { name: 'Apply' }).click();
+      await page.waitForTimeout(150);
+      const liveText = (await page.locator(headingSel).first().textContent())?.trim();
+      check('edit: DOM updated LIVE (before Done)', liveText === 'EDITED HEADING ✦');
+      await panel.getByRole('button', { name: 'Done' }).click();
       await page.waitForTimeout(300);
       const domText = (await page.locator(headingSel).first().textContent())?.trim();
       check('edit: DOM updated to new text', domText === 'EDITED HEADING ✦');
@@ -107,12 +110,27 @@ async function newPage({ authed }) {
     const panel = page.locator('[data-studio-panel]');
     check('icon: picker opened', await panel.count() === 1 && await panel.locator('button[aria-label="heart"]').count() === 1);
     await panel.locator('button[aria-label="heart"]').click();
-    await panel.getByRole('button', { name: 'Apply' }).click();
+    await page.waitForTimeout(150);
+    const live = await page.locator(iconSel).first().getAttribute('data-current');
+    check('icon: data-current updated LIVE on click', live === 'heart');
+    await panel.getByRole('button', { name: 'Done' }).click();
     await page.waitForTimeout(300);
     const cur = await page.locator(iconSel).first().getAttribute('data-current');
-    check('icon: data-current updated to heart', cur === 'heart');
+    check('icon: data-current persists after Done', cur === 'heart');
     const draft = await page.evaluate(() => JSON.parse(localStorage.getItem('studio-draft-v2') || '{}')?.state?.pages?.about?.edits?.['solutions.items.talent.icon']);
     check('icon: draft recorded', draft === 'heart');
+
+    // C1b-cancel. Re-open, pick a DIFFERENT icon (live), then Cancel → reverts to heart.
+    await page.mouse.click(ib.x + ib.width / 2, ib.y + ib.height / 2);
+    await page.waitForTimeout(250);
+    await panel.locator('button[aria-label="shield"]').click();
+    await page.waitForTimeout(150);
+    check('cancel: icon previewed shield live', (await page.locator(iconSel).first().getAttribute('data-current')) === 'shield');
+    await panel.getByRole('button', { name: 'Cancel' }).click();
+    await page.waitForTimeout(250);
+    check('cancel: icon reverted to heart', (await page.locator(iconSel).first().getAttribute('data-current')) === 'heart');
+    const draftAfterCancel = await page.evaluate(() => JSON.parse(localStorage.getItem('studio-draft-v2') || '{}')?.state?.pages?.about?.edits?.['solutions.items.talent.icon']);
+    check('cancel: draft restored to heart', draftAfterCancel === 'heart');
   } else {
     check('icon: solutions.items.talent.icon present', false);
   }
@@ -137,6 +155,36 @@ async function newPage({ authed }) {
     check('avatar: draft recorded as image object', draft?.src === 'https://example.com/avatar.jpg');
   } else {
     check('avatar: team.members.rachel-hodgdon.image present', false);
+  }
+
+  // C1d. Text styling — click a text block, set color + background + alignment.
+  if (await page.locator(headingSel).count() > 0) {
+    await page.locator(headingSel).first().scrollIntoViewIfNeeded();
+    const sb = await page.locator(headingSel).first().boundingBox();
+    await page.mouse.click(sb.x + 12, sb.y + sb.height / 2);
+    await page.waitForTimeout(300);
+    const panel = page.locator('[data-studio-panel]');
+    check('style: controls present (color/bg/align)',
+      await panel.getByText('Text color').count() === 1 &&
+      await panel.getByText('Background').count() === 1 &&
+      await panel.getByText('Alignment').count() === 1);
+    await panel.locator('button[aria-label="plum-400"]').first().click();   // text color (1st swatch row)
+    await panel.locator('button[aria-label="cyan-700"]').nth(1).click();     // background (2nd swatch row)
+    await panel.getByRole('button', { name: 'Align center' }).click();
+    await page.waitForTimeout(150);
+    // styling previews live (before Done)
+    const liveStyle = await page.locator(headingSel).first().evaluate((el) => el.style.color);
+    check('style: applied LIVE before Done', liveStyle === 'var(--color-plum-400)');
+    await panel.getByRole('button', { name: 'Done' }).click();
+    await page.waitForTimeout(300);
+    const applied = await page.locator(headingSel).first().evaluate((el) => ({ color: el.style.color, bg: el.style.backgroundColor, align: el.style.textAlign }));
+    check('style: live inline color = var(--color-plum-400)', applied.color === 'var(--color-plum-400)');
+    check('style: live inline background = var(--color-cyan-700)', applied.bg === 'var(--color-cyan-700)');
+    check('style: live text-align center', applied.align === 'center');
+    const sdraft = await page.evaluate(() => JSON.parse(localStorage.getItem('studio-draft-v2') || '{}')?.state?.pages?.about?.edits?.['style::hero.title']);
+    check('style: draft style::hero.title recorded', sdraft?.color === 'plum-400' && sdraft?.background === 'cyan-700' && sdraft?.align === 'center');
+  } else {
+    check('style: hero.title styleable block present', false);
   }
 
   // C2. Click empty area → panel closes (deselect).
@@ -178,6 +226,7 @@ async function newPage({ authed }) {
   check('publish: team.members order is an array', Array.isArray(pub?.edits?.['team.members']));
   check('publish: solutions icon edit in payload', pub?.edits?.['solutions.items.talent.icon'] === 'heart');
   check('publish: avatar image edit in payload', pub?.edits?.['team.members.rachel-hodgdon.image']?.src === 'https://example.com/avatar.jpg');
+  check('publish: text style edit in payload', pub?.edits?.['style::hero.title']?.color === 'plum-400');
 
   await page.context().close();
 }

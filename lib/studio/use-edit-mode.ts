@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { useDraftStore } from "./draft-store";
 import { reorderById } from "./order";
-import { isImageValue, type ImageValue } from "./field-types";
+import {
+  isImageValue,
+  isTextStyleValue,
+  STYLE_KEY_PREFIX,
+  type ImageValue,
+  type TextStyleValue,
+} from "./field-types";
 
 /**
  * True when the page is rendered inside the Studio preview (`?edit=1`).
@@ -46,6 +52,23 @@ export function useImageValue(
   const draft = useDraftStore((s) => s.pages[page]?.edits[path]);
   if (isEdit && draft != null && isImageValue(draft)) return draft;
   return fallback;
+}
+
+/**
+ * The live style of a text block. In edit mode a draft style (keyed
+ * `style::<path>`) wins so the picker previews instantly; otherwise the published
+ * content style (`fallback`, from the page's `styles` map) — which applies in BOTH
+ * modes so a published color shows on the live site. Empty object = no styling.
+ */
+export function useTextStyle(
+  page: string,
+  path: string,
+  fallback: TextStyleValue | undefined
+): TextStyleValue {
+  const isEdit = useIsEditMode();
+  const draft = useDraftStore((s) => s.pages[page]?.edits[`${STYLE_KEY_PREFIX}${path}`]);
+  if (isEdit && draft != null && isTextStyleValue(draft)) return draft;
+  return fallback ?? {};
 }
 
 /**

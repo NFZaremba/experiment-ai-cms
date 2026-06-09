@@ -1,6 +1,7 @@
 "use client";
 
-import { Text, cn } from "@syscore/ui-library";
+import { cn } from "@syscore/ui-library";
+import { EditableText } from "@/components/studio/EditableText";
 import { getAboutContent } from "@/lib/content";
 import { LayoutChip } from "@/components/studio/LayoutChip";
 import { useLayoutValue } from "@/lib/studio/use-edit-mode";
@@ -26,12 +27,12 @@ export function StatsBand() {
       >
         {stats.items.map((s, i) => (
           <div key={i} className="flex flex-col gap-1 sm:max-w-[12rem]">
-            <Text as="p" variant="heading-small" className="text-white" data-content-path={`stats.items.${i}.value`}>
+            <EditableText as="p" variant="heading-small" className="text-white" path={`stats.items.${i}.value`}>
               {s.value}
-            </Text>
-            <Text as="p" variant="body-small" className="text-white/70" data-content-path={`stats.items.${i}.label`}>
+            </EditableText>
+            <EditableText as="p" variant="body-small" className="text-white/70" path={`stats.items.${i}.label`}>
               {s.label}
-            </Text>
+            </EditableText>
           </div>
         ))}
       </div>

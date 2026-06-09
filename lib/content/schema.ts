@@ -1,4 +1,22 @@
 import { z } from "zod";
+import { COLOR_KEYS } from "./colors";
+
+/**
+ * Per-text-block styling, keyed by the block's content-path. A flat map (added
+ * to a page document as an optional `styles` field) rather than nesting style
+ * onto every text field, so existing string fields are untouched. Colors are
+ * constrained to the design-system token allowlist; alignment to three values.
+ * `.strict()` rejects any unknown style property — keeping this data, not code.
+ */
+const colorKey = z.enum(COLOR_KEYS as [string, ...string[]]);
+const textStyle = z
+  .object({
+    color: colorKey.optional(),
+    background: colorKey.optional(),
+    align: z.enum(["left", "center", "right"]).optional(),
+  })
+  .strict();
+const stylesMap = z.record(z.string(), textStyle).optional();
 
 /**
  * Zod schema for the landing-page content document.
@@ -183,6 +201,8 @@ export const aboutSchema = z.object({
     layout: z.enum(["row", "grid"]).default("row"),
     items: z.array(z.object({ value: z.string(), label: z.string() })),
   }),
+  // Per-text-block styling, keyed by content-path (e.g. "hero.title").
+  styles: stylesMap,
 });
 
 export type AboutContent = z.infer<typeof aboutSchema>;
