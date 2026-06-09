@@ -10,10 +10,20 @@
  *  - link     → { label, href, newTab }
  *  - image    → { src, alt }                          [P8]
  *  - layout   → a constrained enum string (a layout variant)  [AI layout]
+ *  - icon     → a curated icon key string (see lib/content/icons.ts)
  *  - order    → string[] (collection item ids in display order)
  */
 
-export type FieldType = "text" | "richtext" | "link" | "image" | "layout" | "order";
+export type FieldType = "text" | "richtext" | "link" | "image" | "layout" | "icon" | "order";
+
+/** The bounding box of a selected field, in viewport coords. Used to anchor the
+ *  floating editor panel. (Formerly in the now-removed cross-frame messages.ts.) */
+export type FieldRect = {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
 
 export type LinkValue = { label: string; href: string; newTab: boolean };
 export type ImageValue = { src: string; alt: string };

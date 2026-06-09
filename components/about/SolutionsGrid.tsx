@@ -2,9 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { Text, cn } from "@syscore/ui-library";
-import { Magnet, Percent, TrendingUp, GraduationCap, Sparkles } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { getAboutContent } from "@/lib/content";
+import { iconFor } from "@/lib/content/icons";
 import { LayoutChip } from "@/components/studio/LayoutChip";
 import { useLayoutValue, useOrderedItems, useIsEditMode } from "@/lib/studio/use-edit-mode";
 import type { HandleProps } from "@/components/studio/ReorderableList";
@@ -18,14 +17,8 @@ const { solutions } = getAboutContent();
 const PAGE = "about";
 
 /** "WELL offers solutions for:" — an icon + title + body grid. Column count is
- *  an AI-editable layout variant (four | three | two). */
-const ICONS: Record<string, LucideIcon> = {
-  magnet: Magnet,
-  percent: Percent,
-  "trending-up": TrendingUp,
-  "graduation-cap": GraduationCap,
-};
-
+ *  an AI-editable layout variant (four | three | two); each card's icon is an
+ *  editable `icon`-type field. */
 const ICON_COLOR = ["text-cyan-700", "text-plum-400", "text-bronze-600", "text-emerald-700"];
 
 const COLS: Record<string, string> = {
@@ -34,39 +27,55 @@ const COLS: Record<string, string> = {
   two: "grid-cols-1 sm:grid-cols-2",
 };
 
+/** One card. Its own component so it can read its live icon key from the draft
+ *  (a hook can't be called inside a `.map` render callback). */
+function SolutionCard({
+  item,
+  handle,
+}: {
+  item: (typeof solutions.items)[number];
+  handle?: HandleProps;
+}) {
+  const idx = solutions.items.findIndex((s) => s.id === item.id);
+  const iconKey = useLayoutValue(PAGE, `solutions.items.${item.id}.icon`, item.icon);
+  const Icon = iconFor(iconKey);
+  return (
+    <div className="flex flex-col gap-3">
+      {handle && (
+        <button
+          type="button"
+          ref={handle.ref}
+          {...handle.attributes}
+          {...handle.listeners}
+          aria-label={`Drag to reorder ${item.title}`}
+          className="cursor-grab self-start rounded p-1 text-gray-400 hover:bg-gray-100 active:cursor-grabbing"
+        >
+          ⠿
+        </button>
+      )}
+      <span
+        data-content-path={`solutions.items.${item.id}.icon`}
+        data-field-type="icon"
+        data-current={iconKey}
+        className="inline-flex w-fit"
+      >
+        <Icon className={cn("h-9 w-9", ICON_COLOR[idx % ICON_COLOR.length])} strokeWidth={1.5} />
+      </span>
+      <Text as="h3" variant="body-large" className="font-semibold text-gray-800" data-content-path={`solutions.items.${item.id}.title`}>
+        {item.title}
+      </Text>
+      <Text as="p" variant="body-small" className="text-gray-600" data-content-path={`solutions.items.${item.id}.body`}>
+        {item.body}
+      </Text>
+    </div>
+  );
+}
+
 export function SolutionsGrid() {
   const columns = useLayoutValue(PAGE, "solutions.columns", solutions.columns);
   const isEdit = useIsEditMode();
   const items = useOrderedItems(PAGE, "solutions.items", solutions.items);
   const gridCls = cn("grid gap-8", COLS[columns] ?? COLS.four);
-
-  const renderCard = (item: (typeof solutions.items)[number], handle?: HandleProps) => {
-    const Icon = ICONS[item.icon] ?? Sparkles;
-    const idx = solutions.items.findIndex((s) => s.id === item.id);
-    return (
-      <div className="flex flex-col gap-3">
-        {handle && (
-          <button
-            type="button"
-            ref={handle.ref}
-            {...handle.attributes}
-            {...handle.listeners}
-            aria-label={`Drag to reorder ${item.title}`}
-            className="cursor-grab self-start rounded p-1 text-gray-400 hover:bg-gray-100 active:cursor-grabbing"
-          >
-            ⠿
-          </button>
-        )}
-        <Icon className={cn("h-9 w-9", ICON_COLOR[idx % ICON_COLOR.length])} strokeWidth={1.5} />
-        <Text as="h3" variant="body-large" className="font-semibold text-gray-800" data-content-path={`solutions.items.${item.id}.title`}>
-          {item.title}
-        </Text>
-        <Text as="p" variant="body-small" className="text-gray-600" data-content-path={`solutions.items.${item.id}.body`}>
-          {item.body}
-        </Text>
-      </div>
-    );
-  };
 
   return (
     <section className="relative bg-gray-50 pb-20">
@@ -80,10 +89,16 @@ export function SolutionsGrid() {
             path="solutions.items"
             items={items}
             className={gridCls}
-            renderItem={(item, handle) => renderCard(item as (typeof solutions.items)[number], handle)}
+            renderItem={(item, handle) => (
+              <SolutionCard item={item as (typeof solutions.items)[number]} handle={handle} />
+            )}
           />
         ) : (
-          <div className={gridCls}>{items.map((item) => <div key={item.id}>{renderCard(item)}</div>)}</div>
+          <div className={gridCls}>
+            {items.map((item) => (
+              <SolutionCard key={item.id} item={item} />
+            ))}
+          </div>
         )}
       </div>
     </section>

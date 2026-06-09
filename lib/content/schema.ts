@@ -169,7 +169,15 @@ export const aboutSchema = z.object({
     heading: z.string(),
     cta: z.string(),
     columns: z.enum(["four", "three", "two"]).default("four"),
-    members: z.array(z.object({ id: z.string().regex(/^[a-z][a-z0-9-]*$/), name: z.string(), role: z.string() })),
+    members: z.array(
+      z.object({
+        id: z.string().regex(/^[a-z][a-z0-9-]*$/),
+        name: z.string(),
+        role: z.string(),
+        // Optional avatar; unset members fall back to an initials placeholder.
+        image: imageField.optional(),
+      })
+    ),
   }),
   stats: z.object({
     layout: z.enum(["row", "grid"]).default("row"),

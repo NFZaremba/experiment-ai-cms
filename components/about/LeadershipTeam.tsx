@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { Text, Button, cn } from "@syscore/ui-library";
 import { getAboutContent } from "@/lib/content";
 import { LayoutChip } from "@/components/studio/LayoutChip";
-import { useLayoutValue, useOrderedItems, useIsEditMode } from "@/lib/studio/use-edit-mode";
+import { useLayoutValue, useOrderedItems, useImageValue, useIsEditMode } from "@/lib/studio/use-edit-mode";
 import type { HandleProps } from "@/components/studio/ReorderableList";
 
 const ReorderableList = dynamic(
@@ -16,8 +16,8 @@ const { team } = getAboutContent();
 const PAGE = "about";
 
 /** "Meet the leadership team" — a member grid. Column count is the AI-editable
- *  layout variant (four | three | two). Faces are gray placeholders with
- *  initials (no real photography needed for the test surface). */
+ *  layout variant (four | three | two). Each face is an editable `image` field;
+ *  members with no photo set fall back to a gray initials placeholder. */
 const COLS: Record<string, string> = {
   four: "grid-cols-2 lg:grid-cols-4",
   three: "grid-cols-2 lg:grid-cols-3",
@@ -32,13 +32,21 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase();
 
-export function LeadershipTeam() {
-  const columns = useLayoutValue(PAGE, "team.columns", team.columns);
-  const isEdit = useIsEditMode();
-  const members = useOrderedItems(PAGE, "team.members", team.members);
-  const gridCls = cn("grid w-full gap-x-6 gap-y-10", COLS[columns] ?? COLS.four);
-
-  const renderMember = (m: (typeof team.members)[number], handle?: HandleProps) => (
+/** One member. Its own component so it can read its live avatar from the draft
+ *  (a hook can't be called inside a `.map` render callback). */
+function TeamMember({
+  m,
+  handle,
+}: {
+  m: (typeof team.members)[number];
+  handle?: HandleProps;
+}) {
+  const image = useImageValue(PAGE, `team.members.${m.id}.image`, m.image);
+  const avatarProps = {
+    "data-content-path": `team.members.${m.id}.image`,
+    "data-field-type": "image",
+  } as const;
+  return (
     <div className="flex flex-col">
       {handle && (
         <button
@@ -52,9 +60,25 @@ export function LeadershipTeam() {
           ⠿
         </button>
       )}
-      <div className="mb-4 flex aspect-square w-full items-center justify-center rounded-lg bg-gray-200 text-gray-400">
-        <span className="heading-small">{initials(m.name)}</span>
-      </div>
+      {image?.src ? (
+        // eslint-disable-next-line @next/next/no-img-element -- avatar can be a
+        // local path or a remote Cloudinary URL; plain img keeps the editor's
+        // live src-swap simple (no next/image srcset to fight).
+        <img
+          {...avatarProps}
+          data-src={image.src}
+          src={image.src}
+          alt={image.alt}
+          className="mb-4 aspect-square w-full rounded-lg bg-gray-200 object-cover"
+        />
+      ) : (
+        <div
+          {...avatarProps}
+          className="mb-4 flex aspect-square w-full items-center justify-center rounded-lg bg-gray-200 text-gray-400"
+        >
+          <span className="heading-small">{initials(m.name)}</span>
+        </div>
+      )}
       <Text as="p" variant="body-large" className="font-semibold text-gray-800" data-content-path={`team.members.${m.id}.name`}>
         {m.name}
       </Text>
@@ -63,6 +87,13 @@ export function LeadershipTeam() {
       </Text>
     </div>
   );
+}
+
+export function LeadershipTeam() {
+  const columns = useLayoutValue(PAGE, "team.columns", team.columns);
+  const isEdit = useIsEditMode();
+  const members = useOrderedItems(PAGE, "team.members", team.members);
+  const gridCls = cn("grid w-full gap-x-6 gap-y-10", COLS[columns] ?? COLS.four);
 
   return (
     <section className="relative bg-white py-20">
@@ -76,10 +107,16 @@ export function LeadershipTeam() {
             path="team.members"
             items={members}
             className={gridCls}
-            renderItem={(m, handle) => renderMember(m as (typeof team.members)[number], handle)}
+            renderItem={(m, handle) => (
+              <TeamMember m={m as (typeof team.members)[number]} handle={handle} />
+            )}
           />
         ) : (
-          <div className={gridCls}>{members.map((m) => <div key={m.id}>{renderMember(m)}</div>)}</div>
+          <div className={gridCls}>
+            {members.map((m) => (
+              <TeamMember key={m.id} m={m} />
+            ))}
+          </div>
         )}
         <Button
           variant="secondary-light"

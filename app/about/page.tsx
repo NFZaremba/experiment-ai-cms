@@ -1,8 +1,6 @@
 "use client";
 
 import { Text } from "@syscore/ui-library";
-import { EditModeBridge } from "@/components/studio/EditModeBridge";
-import { useIsEditMode } from "@/lib/studio/use-edit-mode";
 import { AboutHero } from "@/components/about/AboutHero";
 import { AboutIntro } from "@/components/about/AboutIntro";
 import { SolutionsGrid } from "@/components/about/SolutionsGrid";
@@ -20,11 +18,8 @@ import { StatsBand } from "@/components/about/StatsBand";
  * docs/handoff-2026-06-07.md and the page-2 fixture for the pattern.
  */
 export default function AboutPage() {
-  const isEdit = useIsEditMode();
-
   return (
     <main className="bg-gray-50">
-      <EditModeBridge active={isEdit} />
       <AboutHero />
       <AboutIntro />
       <SolutionsGrid />

@@ -2,16 +2,17 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CldUploadWidget } from "next-cloudinary";
-import type { FieldRect } from "@/lib/studio/messages";
 import {
   isImageValue,
   isLinkValue,
+  type FieldRect,
   type FieldType,
   type FieldValue,
   type ImageValue,
   type LinkValue,
 } from "@/lib/studio/field-types";
 import { layoutFieldFor } from "@/lib/content/layout-vocab";
+import { ICON_KEYS, iconFor } from "@/lib/content/icons";
 import { RichTextEditor } from "./RichTextEditor";
 
 export type Selection = {
@@ -128,6 +129,15 @@ export function FloatingChatPanel({
           initial={selection.currentValue}
           onApply={(v) => {
             onApply(selection.path, v, "layout");
+            onClose();
+          }}
+          onClose={onClose}
+        />
+      ) : selection.fieldType === "icon" && typeof selection.currentValue === "string" ? (
+        <IconEditor
+          initial={selection.currentValue}
+          onApply={(v) => {
+            onApply(selection.path, v, "icon");
             onClose();
           }}
           onClose={onClose}
@@ -428,6 +438,49 @@ function SelectEditor({
       {aiError && <p className="mb-1 text-[11px] text-red-600">{aiError}</p>}
 
       <Actions onApply={() => onApply(value)} onClose={onClose} hint="AI fills the options above" />
+    </>
+  );
+}
+
+function IconEditor({
+  initial,
+  onApply,
+  onClose,
+}: {
+  initial: string;
+  onApply: (value: string) => void;
+  onClose: () => void;
+}) {
+  const [value, setValue] = useState(initial);
+  useEffect(() => setValue(initial), [initial]);
+
+  return (
+    <>
+      <label className="mb-1 block text-[11px] font-medium text-gray-500">Icon</label>
+      <div className="mb-3 grid grid-cols-4 gap-1.5">
+        {ICON_KEYS.map((key) => {
+          const Icon = iconFor(key);
+          const selected = value === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setValue(key)}
+              title={key}
+              aria-label={key}
+              aria-pressed={selected}
+              className={`flex aspect-square items-center justify-center rounded-md border ${
+                selected
+                  ? "border-cyan-600 bg-cyan-50 text-cyan-800"
+                  : "border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <Icon className="h-5 w-5" strokeWidth={1.5} />
+            </button>
+          );
+        })}
+      </div>
+      <Actions onApply={() => onApply(value)} onClose={onClose} hint="Pick an icon" />
     </>
   );
 }

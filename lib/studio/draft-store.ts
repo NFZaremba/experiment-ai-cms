@@ -8,9 +8,9 @@ import type { FieldValue } from "./field-types";
  * Holds, for each page slug, a map of `data-content-path` → new value for
  * fields the editor changed but hasn't published, plus that page's open
  * preview (PR). Persisted to localStorage so a refresh doesn't lose work and so
- * switching pages doesn't discard the other page's drafts. Because the shell
- * and the preview iframe are same-origin, both windows hydrate from the same
- * key (each keeps its own in-memory instance; live updates go over postMessage).
+ * editing one page doesn't discard another page's drafts. The in-place editor
+ * overlay reads and writes this store directly (same document as the page) —
+ * applying each edit to the DOM live and queueing it here for publish.
  *
  * This is UI/draft state only — never server state. A page's entry is cleared
  * on publish-for-real / reset of that page.

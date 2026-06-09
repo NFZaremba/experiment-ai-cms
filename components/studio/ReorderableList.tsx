@@ -18,7 +18,8 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { recordBridgeEdit } from "@/components/studio/EditModeBridge";
+import { recordEdit } from "@/lib/studio/edit-dom";
+import { pageSlugForPathname } from "@/lib/content/pages";
 
 export type HandleProps = {
   ref: (el: HTMLElement | null) => void;
@@ -28,7 +29,7 @@ export type HandleProps = {
 
 export type ReorderableListProps<T extends { id: string }> = {
   /** content path of the collection, e.g. "team.members". The page slug is
-   *  derived from the iframe's pathname by recordBridgeEdit, so it isn't a prop. */
+   *  derived from the current pathname at drag-end, so it isn't a prop. */
   path: string;
   items: T[];
   className?: string;
@@ -58,7 +59,7 @@ function SortableItem<T extends { id: string }>({
 }
 
 /** Edit-mode drag-to-reorder for a collection. Reorders write to the draft
- *  store (live) + notify the shell for publish via recordBridgeEdit. */
+ *  store (live) and are queued for publish via recordEdit. */
 export function ReorderableList<T extends { id: string }>({
   path,
   items,
@@ -75,7 +76,7 @@ export function ReorderableList<T extends { id: string }>({
     if (!over || active.id === over.id) return;
     const ids = items.map((i) => i.id);
     const next = arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
-    recordBridgeEdit(path, next, "order");
+    recordEdit(pageSlugForPathname(window.location.pathname), path, next);
   };
 
   return (

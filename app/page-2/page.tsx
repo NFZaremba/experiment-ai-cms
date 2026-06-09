@@ -3,9 +3,8 @@
 import Image from "next/image";
 import { Text, cn } from "@syscore/ui-library";
 import { getPage2Content } from "@/lib/content";
-import { EditModeBridge } from "@/components/studio/EditModeBridge";
 import { LayoutChip } from "@/components/studio/LayoutChip";
-import { useIsEditMode, useLayoutValue } from "@/lib/studio/use-edit-mode";
+import { useLayoutValue } from "@/lib/studio/use-edit-mode";
 
 const page = getPage2Content();
 const PAGE = "page-2";
@@ -18,16 +17,12 @@ const PAGE = "page-2";
  * re-render live via the draft store (useLayoutValue) — no reload.
  */
 export default function Page2() {
-  const isEdit = useIsEditMode();
-
   // Layout values — live from the draft store in edit mode, else static content.
   const imagePosition = useLayoutValue(PAGE, "feature.imagePosition", page.feature.imagePosition);
   const cardsLayout = useLayoutValue(PAGE, "cards.layout", page.cards.layout);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-24">
-      <EditModeBridge active={isEdit} />
-
       <Text as="h1" variant="heading-xlarge" data-content-path="title">
         {page.title}
       </Text>

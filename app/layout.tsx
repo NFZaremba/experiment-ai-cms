@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { StudioMount } from "@/components/studio/StudioMount";
 
 export const metadata: Metadata = {
   title: "OneWELL — A first look at the next version of WELL",
@@ -30,7 +31,10 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className="bg-gray-50">{children}</body>
+      <body className="bg-gray-50">
+        {children}
+        <StudioMount />
+      </body>
     </html>
   );
 }
