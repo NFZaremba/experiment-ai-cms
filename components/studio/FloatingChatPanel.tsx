@@ -326,13 +326,18 @@ function ImageEditor({
 
   return (
     <>
-      <div className="mb-2 flex h-28 items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-gray-50 p-2">
+      <div className="mb-2 flex h-28 items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-gray-50 p-2 text-[11px] text-gray-400">
         {/* Plain img: the source can be a local path or a remote Cloudinary URL,
             and this thumbnail doesn't need next/image optimization. Fixed-height
             box so the panel's measured height is stable before the img loads
-            (keeps the viewport-clamp placement accurate). */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={alt} className="max-h-full w-auto object-contain" />
+            (keeps the viewport-clamp placement accurate). Render the img only when
+            there's a source — an empty `src` makes the browser refetch the page. */}
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt={alt} className="max-h-full w-auto object-contain" />
+        ) : (
+          "No image yet"
+        )}
       </div>
       {preset ? (
         <CldUploadWidget
