@@ -168,8 +168,15 @@ async function newPage({ authed }) {
       await panel.getByText('Text color').count() === 1 &&
       await panel.getByText('Background').count() === 1 &&
       await panel.getByText('Alignment').count() === 1);
-    await panel.locator('button[aria-label="plum-400"]').first().click();   // text color (1st swatch row)
-    await panel.locator('button[aria-label="cyan-700"]').nth(1).click();     // background (2nd swatch row)
+    // open the Text color flyout (submenu), pick plum-400
+    await panel.getByRole('button', { name: 'Text color' }).click();
+    await page.waitForTimeout(150);
+    check('style: color flyout opened', await panel.locator('[data-swatch-flyout]').count() === 1);
+    await panel.locator('[data-swatch-flyout] button[aria-label="plum-400"]').click();
+    // open the Background flyout, pick cyan-700
+    await panel.getByRole('button', { name: 'Background' }).click();
+    await page.waitForTimeout(150);
+    await panel.locator('[data-swatch-flyout] button[aria-label="cyan-700"]').click();
     await panel.getByRole('button', { name: 'Align center' }).click();
     await page.waitForTimeout(150);
     // styling previews live (before Done)
@@ -185,6 +192,26 @@ async function newPage({ authed }) {
     check('style: draft style::hero.title recorded', sdraft?.color === 'plum-400' && sdraft?.background === 'cyan-700' && sdraft?.align === 'center');
   } else {
     check('style: hero.title styleable block present', false);
+  }
+
+  // C1f. Panel is draggable by its header.
+  {
+    const hbx = await page.locator(headingSel).first().boundingBox();
+    await page.mouse.click(hbx.x + 12, hbx.y + hbx.height / 2);
+    await page.waitForTimeout(250);
+    const panel = page.locator('[data-studio-panel]');
+    const before = await panel.boundingBox();
+    const hb = await panel.locator('[title="Drag to move"]').boundingBox();
+    await page.mouse.move(hb.x + 20, hb.y + hb.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(hb.x + 20 + 120, hb.y + hb.height / 2 - 100, { steps: 10 });
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+    const after = await panel.boundingBox();
+    check('drag-panel: moved by header (~+120,-100)',
+      Math.abs((after.x - before.x) - 120) <= 8 && Math.abs((after.y - before.y) + 100) <= 8);
+    await panel.getByRole('button', { name: 'Close' }).click();
+    await page.waitForTimeout(150);
   }
 
   // C2. Click empty area → panel closes (deselect).

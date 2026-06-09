@@ -56,13 +56,16 @@ export function FloatingChatPanel({
   onClose: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const [top, setTop] = useState(8);
+  const [anchorTop, setAnchorTop] = useState(8);
+  // Position after the user drags the panel by its header. Null until dragged →
+  // the click-anchored position is used. Reset per selection (a new field re-anchors).
+  const [dragPos, setDragPos] = useState<{ top: number; left: number } | null>(null);
 
   // Anchor at the point the user clicked (offset into the shell by the iframe
   // position), not the field's bounding box — feels direct, and avoids landing
   // far from the cursor on large fields. Clamped to the viewport.
   const clickX = (iframeRect?.left ?? 0) + selection.point.x;
-  const left =
+  const anchorLeft =
     typeof window !== "undefined"
       ? Math.max(8, Math.min(clickX, window.innerWidth - PANEL_WIDTH - 16))
       : clickX;
@@ -78,8 +81,38 @@ export function FloatingChatPanel({
       const above = clickY - 12 - h;
       t = above >= 8 ? above : Math.max(8, vh - h - 8);
     }
-    setTop(t);
+    setAnchorTop(t);
   }, [iframeRect, selection.point.x, selection.point.y, selection.path]);
+
+  // Selecting a different field re-anchors to the new click point.
+  useEffect(() => setDragPos(null), [selection.path]);
+
+  const top = dragPos?.top ?? anchorTop;
+  const left = dragPos?.left ?? anchorLeft;
+
+  // Drag the panel by its header. Clamped so it can't be dragged off-screen.
+  const onHeaderPointerDown = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest("button, a, input, textarea")) return; // not the × / controls
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const baseLeft = left;
+    const baseTop = top;
+    const onMove = (ev: PointerEvent) => {
+      const w = panelRef.current?.offsetWidth ?? PANEL_WIDTH;
+      const h = panelRef.current?.offsetHeight ?? 240;
+      setDragPos({
+        left: Math.max(8, Math.min(baseLeft + (ev.clientX - startX), window.innerWidth - w - 8)),
+        top: Math.max(8, Math.min(baseTop + (ev.clientY - startY), window.innerHeight - h - 8)),
+      });
+    };
+    const onUp = () => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+  };
 
   return (
     <div
@@ -89,7 +122,9 @@ export function FloatingChatPanel({
         top,
         left,
         width: PANEL_WIDTH,
-        maxHeight: "calc(100vh - 16px)",
+        // Cap below the viewport so the panel is a movable floating window (room
+        // to drag in both axes) with the long palette scrolling inside it.
+        maxHeight: "min(78vh, 620px)",
         overflowY: "auto",
         zIndex: 2147483000,
       }}
@@ -97,11 +132,18 @@ export function FloatingChatPanel({
       data-studio-panel
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <code className="truncate rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600">
-          {selection.path}
-        </code>
-        <button onClick={onClose} className="shrink-0 text-gray-400 hover:text-gray-700" aria-label="Close">
+      <div
+        onPointerDown={onHeaderPointerDown}
+        className="mb-2 flex cursor-move touch-none select-none items-center justify-between gap-2"
+        title="Drag to move"
+      >
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span aria-hidden className="shrink-0 text-gray-300">⠿</span>
+          <code className="truncate rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600">
+            {selection.path}
+          </code>
+        </span>
+        <button onClick={onClose} className="shrink-0 cursor-pointer text-gray-400 hover:text-gray-700" aria-label="Close">
           ✕
         </button>
       </div>
@@ -568,13 +610,13 @@ function StyleControls({
   const aligns: TextStyleValue["align"][] = ["left", "center", "right"];
   return (
     <div className="mt-2 flex flex-col gap-2 border-t border-gray-100 pt-2">
-      <SwatchRow
+      <SwatchTrigger
         label="Text color"
         clearLabel="Default"
         selected={value.color}
         onSelect={(key) => onChange({ ...value, color: key })}
       />
-      <SwatchRow
+      <SwatchTrigger
         label="Background"
         clearLabel="None"
         selected={value.background}
@@ -631,9 +673,10 @@ function Swatch({
   );
 }
 
-/** The full design-system palette, grouped by family (one row of steps each),
- *  plus the standalone tokens and a "clear" option. */
-function SwatchRow({
+/** A compact color control: shows the current value as a chip + label, and opens
+ *  the full palette as a flyout anchored beside the editor panel (a submenu),
+ *  rather than stacking the whole grid inline. */
+function SwatchTrigger({
   label,
   clearLabel,
   selected,
@@ -644,10 +687,100 @@ function SwatchRow({
   selected?: string;
   onSelect: (key: string | undefined) => void;
 }) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  const FLYOUT_W = 304;
+  const FLYOUT_H = 360;
+
+  const toggle = () => {
+    if (pos) {
+      setPos(null);
+      return;
+    }
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const panel = btnRef.current?.closest("[data-studio-panel]")?.getBoundingClientRect();
+    // Open beside the panel (submenu style); flip to the other side if no room.
+    let left = (panel?.right ?? r.right) + 6;
+    if (left + FLYOUT_W > window.innerWidth - 8) left = (panel?.left ?? r.left) - FLYOUT_W - 6;
+    left = Math.max(8, left);
+    const top = Math.min(Math.max(8, r.top), Math.max(8, window.innerHeight - FLYOUT_H - 8));
+    setPos({ top, left });
+  };
+
+  // Close on click outside the flyout (and outside the trigger).
+  useEffect(() => {
+    if (!pos) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("[data-swatch-flyout]") || (btnRef.current && t && btnRef.current.contains(t))) return;
+      setPos(null);
+    };
+    document.addEventListener("mousedown", onDown, true);
+    return () => document.removeEventListener("mousedown", onDown, true);
+  }, [pos]);
+
   return (
     <div>
-      <div className="mb-1 flex items-center gap-2">
-        <span className="text-[11px] font-medium text-gray-500">{label}</span>
+      <span className="mb-1 block text-[11px] font-medium text-gray-500">{label}</span>
+      <button
+        ref={btnRef}
+        type="button"
+        aria-label={label}
+        aria-expanded={pos != null}
+        onClick={toggle}
+        className="flex w-full items-center gap-2 rounded-md border border-gray-200 px-2 py-1 text-xs hover:bg-gray-50"
+      >
+        <span
+          className="h-4 w-4 shrink-0 rounded border border-gray-300"
+          style={{ backgroundColor: selected ? cssVarFor(selected) : "transparent" }}
+        />
+        <span className="text-gray-700">{selected ?? clearLabel}</span>
+        <span className="ml-auto text-gray-400">▸</span>
+      </button>
+      {pos && (
+        <div
+          data-swatch-flyout
+          style={{
+            position: "fixed",
+            top: pos.top,
+            left: pos.left,
+            width: FLYOUT_W,
+            maxHeight: FLYOUT_H,
+            overflowY: "auto",
+            zIndex: 2147483600,
+          }}
+          className="rounded-lg border border-gray-200 bg-white p-2 shadow-2xl"
+        >
+          <SwatchGrid
+            clearLabel={clearLabel}
+            selected={selected}
+            onSelect={(k) => {
+              onSelect(k);
+              setPos(null);
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The full design-system palette, grouped by family (one row of steps each),
+ *  plus the standalone tokens and a "clear" option. Rendered inside the flyout. */
+function SwatchGrid({
+  clearLabel,
+  selected,
+  onSelect,
+}: {
+  clearLabel: string;
+  selected?: string;
+  onSelect: (key: string | undefined) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center gap-1.5">
         <button
           type="button"
           aria-label={clearLabel}
