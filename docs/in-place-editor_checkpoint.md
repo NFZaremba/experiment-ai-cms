@@ -2,7 +2,9 @@
 
 > Single source of truth for the Content Studio's **in-place editor** (the overlay, field types,
 > EditableText, live preview, pickers). The **publish spine** it feeds is in
-> `multi-page-publish_checkpoint.md`. Last updated 2026-06-09 (HEAD `a5970bf`).
+> `multi-page-publish_checkpoint.md`. Last updated 2026-06-09 (HEAD `bbb9ea4`, deployed). The
+> draggable-panel/color-flyout work that was unpushed `a5970bf` has since landed (`4d33275`); §4's
+> rollout TODO was sharpened by a scoping pass — see `docs/handoff-2026-06-09-rollout-scoping.md`.
 
 ## 1. Current state
 
@@ -71,9 +73,19 @@ ANY registered page ──ssr static──▶ <StudioMount/> (body root, ~0 KB)
   for this data size; debounce deferred until a much larger doc warrants it.
 
 ## 4. What's next / TODO
-- **Roll text styling to `/` + `/page-2`**: migrate their text blocks to `<EditableText>`, add a `styles`
-  map to `landingSchema`/`page2Schema`, wrap each page in `<TextStylesProvider>`. /about is the template.
-- Push `a5970bf` when the user wants the drag/flyout live (it's the only unpushed commit).
+- **Roll text styling to `/` + `/page-2`** (scoped 2026-06-09, then parked by the user — full detail in
+  `docs/handoff-2026-06-09-rollout-scoping.md`): per page, add the optional `styles` map to
+  `landingSchema`/`page2Schema`, wrap in `<TextStylesProvider>`, swap `<Text data-content-path>` →
+  `<EditableText path>`. /about is the template. **But the two targets differ in difficulty:**
+  - **`/page-2` — clean, low-risk first target.** ~15 plain block-level `<Text>` blocks, no animation; a
+    second /about. Do this one first to prove the rollout.
+  - **`/` (landing) — NOT a clean mirror.** ~58 text spots across 8 `components/landing/` files, mixing
+    block `<Text>` (map cleanly), inline `<span data-content-path>` (e.g. `intro.title.line1/line2`; line2
+    has a gradient-clip fill), and `<SectionBadge data-content-path>`. `EditableText` wraps `<Text>` only,
+    so spans + badges don't drop in. `IntroSection` runs GSAP `SplitText` — per-block color/align inherit
+    fine, per-block *background* on split text looks wrong. **Open decision:** style block-level `<Text>`
+    only vs generalize `EditableText`/`useTextStyle` to any element.
+  - Schema touch ⇒ run `full-review` (Tier 3) with the fresh-eyes peer agent when this resumes.
 
 ## 5. Deferred / out of scope
 - **Two alignment systems overlap** on hero/sum (container `textAlign` *layout* field + per-block `align`);
