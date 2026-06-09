@@ -18,6 +18,12 @@
     "columns": "four",
     "items": [
       {
+        "id": "knowledge",
+        "icon": "award",
+        "title": "Becoming more knowledgeable",
+        "body": "Becoming more knowledgeable about how we can use our places and spaces to make us safer and healthier."
+      },
+      {
         "id": "talent",
         "icon": "magnet",
         "title": "Attracting top talent",
@@ -25,15 +31,9 @@
       },
       {
         "id": "business-case",
-        "icon": "percent",
+        "icon": "users",
         "title": "Making the business case",
         "body": "Making the business case for strategic investments in health and well-being."
-      },
-      {
-        "id": "knowledge",
-        "icon": "trending-up",
-        "title": "Becoming more knowledgeable",
-        "body": "Becoming more knowledgeable about how we can use our places and spaces to make us safer and healthier."
       },
       {
         "id": "credentials",
@@ -48,7 +48,10 @@
     "heading": "Delivering on People-first Places: Introducing IWBI's 2023 Annual Report",
     "body": "Explore the significant progress IWBI and its dedicated community made in advancing healthy buildings and organizations, including details on the global impact and continued momentum of WELL.",
     "cta": "Learn more",
-    "image": { "src": "/img/shapes.webp", "alt": "" },
+    "image": {
+      "src": "/img/shapes.webp",
+      "alt": ""
+    },
     "imagePosition": "left"
   },
   "sum": {
@@ -62,26 +65,88 @@
     "cta": "Meet the rest of the team",
     "columns": "four",
     "members": [
-      { "id": "rachel-hodgdon", "name": "Rachel Hodgdon", "role": "President & CEO, IWBI" },
-      { "id": "prateek-khanna", "name": "Prateek Khanna", "role": "COO" },
-      { "id": "judith-webb", "name": "Judith Webb", "role": "Chief of Staff" },
-      { "id": "jessica-cooper", "name": "Jessica Cooper", "role": "Chief Product Officer" },
-      { "id": "jason-hartke", "name": "Jason Hartke, Ph.D.", "role": "Executive Vice President, External Affairs" },
-      { "id": "xue-ya", "name": "Xue Ya", "role": "President of IWBI Asia" },
-      { "id": "lindsay-jacobs", "name": "Lindsay Jacobs", "role": "Senior Vice President, Head of Sales and Marketing" },
-      { "id": "jodie-pimentel", "name": "Jodie Pimentel", "role": "Chief Counsel, IWBI" },
-      { "id": "paul-scialla", "name": "Paul Scialla", "role": "Founder" },
-      { "id": "rick-fedrizzi", "name": "Rick Fedrizzi", "role": "Executive Chairman" },
-      { "id": "kimberly-lewis-inkumsah", "name": "Kimberly Lewis Inkumsah", "role": "Executive Vice President, Equity, Engagement, and Events" }
+      {
+        "id": "judith-webb",
+        "name": "Judith Webb",
+        "role": "Chief of Staff"
+      },
+      {
+        "id": "jason-hartke",
+        "name": "Jason Hartke, Ph.D.",
+        "role": "Executive Vice President, External Affairs"
+      },
+      {
+        "id": "jessica-cooper",
+        "name": "Jessica Cooper",
+        "role": "Chief Product Officer"
+      },
+      {
+        "id": "xue-ya",
+        "name": "Xue Ya",
+        "role": "President of IWBI Asia"
+      },
+      {
+        "id": "lindsay-jacobs",
+        "name": "Lindsay Jacobs",
+        "role": "Senior Vice President, Head of Sales and Marketing"
+      },
+      {
+        "id": "rachel-hodgdon",
+        "name": "Rachel Hodgdon",
+        "role": "President & CEO, IWBI"
+      },
+      {
+        "id": "prateek-khanna",
+        "name": "Prateek Khanna",
+        "role": "COO"
+      },
+      {
+        "id": "jodie-pimentel",
+        "name": "Jodie Pimentel",
+        "role": "Chief Counsel, IWBI"
+      },
+      {
+        "id": "paul-scialla",
+        "name": "Paul Scialla",
+        "role": "Founder"
+      },
+      {
+        "id": "rick-fedrizzi",
+        "name": "Rick Fedrizzi",
+        "role": "Executive Chairman"
+      },
+      {
+        "id": "kimberly-lewis-inkumsah",
+        "name": "Kimberly Lewis Inkumsah",
+        "role": "Executive Vice President, Equity, Engagement, and Events"
+      }
     ]
   },
   "stats": {
     "layout": "row",
     "items": [
-      { "value": "Most Innovative Companies", "label": "+ World Changing Ideas" },
-      { "value": "29,348 people", "label": "in 136 countries" },
-      { "value": "100,000+", "label": "commercial & residential projects participate in WELL" },
-      { "value": "6.39 billion sq ft", "label": "across 131 countries" }
+      {
+        "value": "Most Innovative Companies",
+        "label": "+ World Changing Ideas"
+      },
+      {
+        "value": "29,348 people",
+        "label": "in 136 countries"
+      },
+      {
+        "value": "100,000+",
+        "label": "commercial & residential projects participate in WELL"
+      },
+      {
+        "value": "6.39 billion sq ft",
+        "label": "across 131 countries"
+      }
     ]
+  },
+  "styles": {
+    "intro.paragraphs.1": {
+      "color": "black",
+      "align": "center"
+    }
   }
 }
