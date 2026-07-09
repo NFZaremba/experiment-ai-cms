@@ -80,7 +80,66 @@ async function commitFiles(branch: string, changeSet: ChangeSet): Promise<string
   return headSha;
 }
 
-/** Create a branch off base, commit the ChangeSet's files, open a PR. */
+/**
+ * Minimal structural slice of Octokit used by the branch-lifecycle helpers, so
+ * tests can exercise them with a fake client.
+ */
+export type BranchRefClient = {
+  git: {
+    createRef: (p: { owner: string; repo: string; ref: string; sha: string }) => Promise<unknown>;
+    updateRef: (p: {
+      owner: string;
+      repo: string;
+      ref: string;
+      sha: string;
+      force?: boolean;
+    }) => Promise<unknown>;
+    deleteRef: (p: { owner: string; repo: string; ref: string }) => Promise<unknown>;
+  };
+};
+
+/**
+ * Point `branch` at `sha`, creating it when absent. A 422 "Reference already
+ * exists" means an ORPHANED branch — merge/close left `studio/<slug>` behind
+ * with no open PR — so force-reset it to the new base instead of failing the
+ * publish. Any other error (auth, network) surfaces untouched.
+ */
+export async function ensureBranchAt(
+  client: BranchRefClient,
+  owner: string,
+  repo: string,
+  branch: string,
+  sha: string
+): Promise<void> {
+  try {
+    await client.git.createRef({ owner, repo, ref: `refs/heads/${branch}`, sha });
+  } catch (e) {
+    if ((e as { status?: number })?.status !== 422) throw e;
+    await client.git.updateRef({ owner, repo, ref: `heads/${branch}`, sha, force: true });
+  }
+}
+
+/**
+ * Best-effort cleanup of a page's `studio/*` branch once its PR is closed or
+ * merged — leaving it behind would orphan the branch and (pre-ensureBranchAt)
+ * broke the page's next publish. Never touches non-studio branches; never
+ * fails the caller.
+ */
+export async function deleteBranchIfStudio(
+  client: BranchRefClient,
+  owner: string,
+  repo: string,
+  branch: string
+): Promise<void> {
+  if (!branch.startsWith("studio/")) return;
+  try {
+    await client.git.deleteRef({ owner, repo, ref: `heads/${branch}` });
+  } catch {
+    // Branch already gone / not deletable — ignore.
+  }
+}
+
+/** Create (or reclaim) the branch off base, commit the ChangeSet's files, open a PR. */
 export async function publishChangeSet(
   branch: string,
   changeSet: ChangeSet
@@ -90,12 +149,7 @@ export async function publishChangeSet(
   const baseRef = await octokit.git.getRef({ owner, repo, ref: `heads/${base}` });
   const baseSha = baseRef.data.object.sha;
 
-  await octokit.git.createRef({
-    owner,
-    repo,
-    ref: `refs/heads/${branch}`,
-    sha: baseSha,
-  });
+  await ensureBranchAt(octokit, owner, repo, branch, baseSha);
 
   const headSha = await commitFiles(branch, changeSet);
 
@@ -262,24 +316,21 @@ export async function closePullRequest(prNumber: number): Promise<void> {
   const { octokit, owner, repo } = config();
   const pr = await octokit.pulls.get({ owner, repo, pull_number: prNumber });
   await octokit.pulls.update({ owner, repo, pull_number: prNumber, state: "closed" });
-  const branch = pr.data.head.ref;
-  if (branch.startsWith("studio/")) {
-    try {
-      await octokit.git.deleteRef({ owner, repo, ref: `heads/${branch}` });
-    } catch {
-      // Branch already gone / not deletable — ignore.
-    }
-  }
+  await deleteBranchIfStudio(octokit, owner, repo, pr.data.head.ref);
 }
 
 /** Squash-merge a PR (→ production deploy on merge to base). */
 export async function mergePullRequest(prNumber: number): Promise<{ merged: boolean; sha?: string }> {
   const { octokit, owner, repo } = config();
+  const pr = await octokit.pulls.get({ owner, repo, pull_number: prNumber });
   const res = await octokit.pulls.merge({
     owner,
     repo,
     pull_number: prNumber,
     merge_method: "squash",
   });
+  if (res.data.merged) {
+    await deleteBranchIfStudio(octokit, owner, repo, pr.data.head.ref);
+  }
   return { merged: res.data.merged, sha: res.data.sha };
 }

@@ -11,6 +11,24 @@
 > see `docs/in-place-editor_checkpoint.md` (authoritative).** The per-page-PR spine (§1–§5 below) is KEPT
 > and unchanged; only the entry/UI changed. The Tier-1 frontier (shared draft/presence) and roles remain
 > unbuilt.
+>
+> **🔧 Branch-lifecycle fix (2026-07-09).** "Publish for real" (squash-merge) left the page's
+> `studio/<slug>` branch behind; the page's NEXT publish then found no open PR, tried
+> `git.createRef` on the still-existing branch, and failed with 422 "Reference already exists" —
+> every page became unpublishable after its first production merge (bit `/` via orphaned
+> `studio/home` from PR #14). Fixed in `lib/studio/github.ts`: `ensureBranchAt` (create the
+> branch, or force-reset a 422-orphan to base) now backs `publishChangeSet`, and both
+> `mergePullRequest` and `closePullRequest` delete the studio branch via `deleteBranchIfStudio`.
+> Tests: `tests/github-branch-reconcile.test.ts`. Verified live: heal-publish → merge (branch
+> auto-deleted) → fresh publish → Reset/close (branch deleted). Legacy `studio/edit-*` branches
+> removed from the remote.
+>
+> **⚠️ Drift flag (2026-07-09):** §4 build-on-branch and §5 sha-retry are **NOT implemented**,
+> despite the status line above — `buildContentChangeSet` (lib/studio/changeset.ts:29) builds
+> from the *bundled* page JSON and `commitFiles` has no 409 retry; `readFileOnRef` is used only
+> for the no-op guard. Concurrent same-page publishes from two browsers still overwrite each
+> other. The "Same page, different fields ✅" row below is therefore aspirational until §4/§5
+> land (planned as concurrency Phase 2 in the 2026-07-08 improvement roadmap).
 
 ## The model in one line
 
